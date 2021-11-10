@@ -34,8 +34,8 @@ interface IPool {
  * Main class for a LeveragedPool. Initiated with an an address and an RPC url.
  * The constructor for this class is private and requires an async initialisation
  * 	via Pool.Create({ address, rpcURL }). 
- * It is optional for the user to provide more pool information to reduce 
- * 	the number of RPC calls required to make. This information the static information
+ * It is optional for the user to provide additional pool information, reducing
+ * 	the number of RPC calls. This optional info is static information
  * 	of the pool, such as names and addresses
  */
 export class Pool {
