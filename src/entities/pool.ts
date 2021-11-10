@@ -9,6 +9,7 @@ import {
 } from '@tracer-protocol/perpetual-pools-contracts/types';
 import { PoolToken } from "./poolToken";
 import { Committer } from './committer';
+import { calcNextValueTransfer, calcTokenPrice } from "..";
 
 interface IPool {
 	// address is the only mandatory props
@@ -29,6 +30,14 @@ interface IPool {
     quoteToken?: StaticTokenInfo;
 }
 
+/**
+ * Main class for a LeveragedPool. Initiated with an an address and an RPC url.
+ * The constructor for this class is private and requires an async initialisation
+ * 	via Pool.Create({ address, rpcURL }). 
+ * It is optional for the user to provide more pool information to reduce 
+ * 	the number of RPC calls required to make. This information the static information
+ * 	of the pool, such as names and addresses
+ */
 export class Pool {
     address: string;
 	provider: ethers.providers.JsonRpcProvider;
@@ -153,5 +162,58 @@ export class Pool {
 		this.shortToken = shortToken;
 		this.longToken = longToken;
 		this.quoteToken = quoteToken;
+	}
+
+	/**
+	 * Calculates the pools next value transfer in quote token units (eg USD).
+	 * @returns and object containing short and long value transfer. 
+	 * 	The values will be a negation of eachother but this way reads better than 
+	 * 	returning a winning side as well as a value
+	 */
+	public calcNextValueTransfer: () => {
+		shortValueTransfer: BigNumber,
+		longValueTransfer: BigNumber,
+	}= () => (
+		calcNextValueTransfer(this.lastPrice, this.oraclePrice, new BigNumber(this.leverage), this.longBalance, this.shortBalance)
+	);
+
+	/**
+	 * Calculates and returns the long token price
+	 * @returns the long token price in quote token units (eg USD) 
+	 */
+	public calcLongTokenPrice: () => BigNumber = () => (
+		calcTokenPrice(this.longBalance, this.longToken.supply.plus(this.committer.pendingLong.burn))
+	)
+
+	/**
+	 * Calculates and returns the long token price
+	 * @returns the long token price in quote token units (eg USD) 
+	 */
+	public calcShortTokenPrice: () => BigNumber = () => (
+		calcTokenPrice(this.shortBalance, this.shortToken.supply.plus(this.committer.pendingShort.burn))
+	)
+
+	/**
+	 * Calculates and returns the long token price as if the rebalance occured at t = now
+	 * @returns the long token price in quote token units (eg USD) 
+	 */
+	public calcNextLongTokenPrice: () => BigNumber = () => {
+		// value transfer is +- 
+		const {
+			longValueTransfer	
+		} = this.calcNextValueTransfer();
+		return calcTokenPrice(this.longBalance.plus(longValueTransfer), this.longToken.supply.plus(this.committer.pendingLong.burn))
+	}
+
+	/**
+	 * Calculates and returns the short token price as if the rebalance occured at t = now
+	 * @returns the long token price in quote token units (eg USD) 
+	 */
+	public calcNextShortTokenPrice: () => BigNumber = () => {
+		// value transfer is +- 
+		const {
+			shortValueTransfer
+		} = this.calcNextValueTransfer();
+		return calcTokenPrice(this.shortBalance.plus(shortValueTransfer), this.shortToken.supply.plus(this.committer.pendingShort.burn))
 	}
 }

@@ -1,5 +1,7 @@
 import { PoolToken__factory, PoolToken as PoolTokenContract } from "@tracer-protocol/perpetual-pools-contracts/types";
+import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
+import { calcTokenPrice } from "..";
 import { IToken } from "./token";
 
 export interface IPoolToken extends IToken {
@@ -13,6 +15,7 @@ export class PoolToken {
 	symbol: string;
 	decimals: number;
 	pool: string;
+	supply: BigNumber;
 
 	private constructor () {
 		// these all need to be ovverridden in the init function
@@ -22,6 +25,7 @@ export class PoolToken {
 		this.symbol = '';
 		this.decimals = 18;
 		this.pool = '';
+		this.supply = new BigNumber(0);
 	} // private constructor
 
 	public static Create: (tokenInfo: IPoolToken) => Promise<PoolToken> = async (tokenInfo) => {
@@ -42,14 +46,16 @@ export class PoolToken {
 			tokenInfo.provider,
 		) as PoolTokenContract;
 
-		const [name, symbol, decimals] = await Promise.all([
+		const [name, symbol, decimals, supply] = await Promise.all([
 			tokenInfo?.name ? tokenInfo?.name : contract.name(),
 			tokenInfo?.symbol ? tokenInfo?.symbol : contract.symbol(),
 			tokenInfo?.decimals ? tokenInfo?.decimals : contract.decimals(),
+			contract.totalSupply(),
 		])
 
 		this.name = name;
 		this.symbol = symbol;
 		this.decimals = decimals;
+		this.supply = new BigNumber(ethers.utils.formatUnits(supply, decimals))
 	}
 }
