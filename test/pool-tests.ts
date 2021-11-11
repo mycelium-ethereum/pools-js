@@ -174,3 +174,19 @@ describe('Testing pool constructor', function() {
 		)))
 	});
 });
+
+describe('Calculating token prices', function() {
+	this.timeout(10000)
+	it('Long token', function() {
+		const poolConfig_ = poolConfig[0];
+		return (
+			createPool(poolConfig_.address, poolConfig_).then((pool) => {
+				console.log(pool.name)
+				console.log('current long', pool.calcLongTokenPrice().toNumber())
+				console.log('current short', pool.calcShortTokenPrice().toNumber())
+				console.log('next long', pool.calcNextLongTokenPrice().toNumber())
+				console.log('next short', pool.calcNextShortTokenPrice().toNumber())
+			})
+		)
+	});
+})
