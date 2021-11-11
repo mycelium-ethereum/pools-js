@@ -1,14 +1,14 @@
 import { PoolCommitter, PoolCommitter__factory } from "@tracer-protocol/perpetual-pools-contracts/types";
 import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
-import { IContract, PendingAmounts } from "../types";
+import { CommitEnum, IContract, PendingAmounts } from "../types";
 
 interface IPoolCommitter extends IContract {
 	quoteTokenDecimals: number;
 	minimumCommitSize?: number;
 }
 
-export class Committer {
+export default class Committer {
 	address: string;
 	provider: ethers.providers.JsonRpcProvider;
     pendingLong: PendingAmounts;
@@ -49,9 +49,27 @@ export class Committer {
 
 		const providedMinCommitSize = !!commitInfo?.minimumCommitSize;
 
-		const [minimumCommitSize] = await Promise.all([
-			providedMinCommitSize ? ethers.BigNumber.from(commitInfo.minimumCommitSize) : contract.minimumCommitSize()
+		const [
+			minimumCommitSize,
+			longMints,
+			longBurns,
+			shortMints,
+			shortBurns
+		] = await Promise.all([
+			providedMinCommitSize ? ethers.BigNumber.from(commitInfo.minimumCommitSize) : contract.minimumCommitSize(),
+			contract.shadowPools(CommitEnum.long_mint),
+			contract.shadowPools(CommitEnum.long_burn),
+			contract.shadowPools(CommitEnum.short_mint),
+			contract.shadowPools(CommitEnum.short_burn),
 		])
-		this.minimumCommitSize = providedMinCommitSize ? new BigNumber(minimumCommitSize.toString()) : new BigNumber(ethers.utils.formatUnits(minimumCommitSize, commitInfo.quoteTokenDecimals))
+		this.minimumCommitSize = new BigNumber(minimumCommitSize.toString()),
+		this.pendingLong = {
+			mint: new BigNumber(ethers.utils.formatUnits(longMints, commitInfo.quoteTokenDecimals)),
+			burn: new BigNumber(ethers.utils.formatUnits(longBurns, commitInfo.quoteTokenDecimals)),
+		}
+		this.pendingShort = {
+			mint: new BigNumber(ethers.utils.formatUnits(shortMints, commitInfo.quoteTokenDecimals)),
+			burn: new BigNumber(ethers.utils.formatUnits(shortBurns, commitInfo.quoteTokenDecimals)),
+		}
 	}
 }

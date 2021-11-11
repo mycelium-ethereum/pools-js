@@ -10,3 +10,11 @@ export interface IContract {
 	address: string;
 	provider: ethers.providers.JsonRpcProvider;
 }
+
+
+export type StaticTokenInfo = {
+	address: string;
+	name: string;
+	symbol: string;
+	decimals: number;
+}

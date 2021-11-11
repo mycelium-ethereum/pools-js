@@ -3,16 +3,16 @@ import { ethers } from "ethers";
 import { IContract } from "../types";
 
 
-export interface IToken extends IContract, StaticTokenInfo {}
+export interface IToken extends IContract, TokenInfo {}
 
-export interface StaticTokenInfo {
+export interface TokenInfo {
 	address: string;
 	name?: string;
 	symbol?: string;
 	decimals?: number;
 }
 
-export class Token {
+export default class Token {
 	address: string;
 	provider: ethers.providers.JsonRpcProvider;
 	name: string;

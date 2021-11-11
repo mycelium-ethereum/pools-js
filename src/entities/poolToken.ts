@@ -1,14 +1,13 @@
 import { PoolToken__factory, PoolToken as PoolTokenContract } from "@tracer-protocol/perpetual-pools-contracts/types";
 import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
-import { calcTokenPrice } from "..";
 import { IToken } from "./token";
 
 export interface IPoolToken extends IToken {
 	pool: string;
 }
 
-export class PoolToken {
+export default class PoolToken {
 	address: string;
 	provider: ethers.providers.JsonRpcProvider;
 	name: string;

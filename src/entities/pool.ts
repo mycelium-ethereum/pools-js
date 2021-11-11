@@ -1,5 +1,5 @@
 import BigNumber from "bignumber.js";
-import { StaticTokenInfo, Token } from "./token";
+import Token, { TokenInfo } from "./token";
 import { ethers } from 'ethers';
 import {
     LeveragedPool__factory,
@@ -7,8 +7,8 @@ import {
     PoolKeeper__factory,
     PoolKeeper,
 } from '@tracer-protocol/perpetual-pools-contracts/types';
-import { PoolToken } from "./poolToken";
-import { Committer } from './committer';
+import PoolToken from "./poolToken";
+import Committer from './committer';
 import { calcNextValueTransfer, calcTokenPrice } from "..";
 
 interface IPool {
@@ -25,9 +25,9 @@ interface IPool {
 		address: string;
 		minimumCommitSize: number;
 	}
-    shortToken?: StaticTokenInfo;
-    longToken?: StaticTokenInfo;
-    quoteToken?: StaticTokenInfo;
+    shortToken?: TokenInfo;
+    longToken?: TokenInfo;
+    quoteToken?: TokenInfo;
 }
 
 /**
@@ -38,7 +38,7 @@ interface IPool {
  * 	the number of RPC calls. This optional info is static information
  * 	of the pool, such as names and addresses
  */
-export class Pool {
+export default class Pool {
     address: string;
 	provider: ethers.providers.JsonRpcProvider;
 
