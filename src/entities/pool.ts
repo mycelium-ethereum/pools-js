@@ -186,7 +186,7 @@ export class Pool {
 	)
 
 	/**
-	 * Calculates and returns the long token price
+	 * Calculates and returns the short token price
 	 * @returns the long token price in quote token units (eg USD) 
 	 */
 	public calcShortTokenPrice: () => BigNumber = () => (
