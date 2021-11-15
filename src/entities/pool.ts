@@ -9,7 +9,7 @@ import {
 } from '@tracer-protocol/perpetual-pools-contracts/types';
 import PoolToken from "./poolToken";
 import Committer from './committer';
-import { calcNextValueTransfer, calcTokenPrice } from "..";
+import { calcNextValueTransfer, calcSkew, calcTokenPrice } from "..";
 
 /**
  * Pool class constructor inputs.
@@ -54,6 +54,8 @@ export default class Pool {
     address: string;
 	provider: ethers.providers.JsonRpcProvider;
 
+	_contract?: LeveragedPool;
+	_keeper?: PoolKeeper;
 	// these errors are because there is nothing initialised in constructor
 	// @ts-expect-error is set in Create()
     name: string;
@@ -109,17 +111,20 @@ export default class Pool {
 	}
 
 	/**
+	 * TODO
+	 */
+	public static DeployPool: () => void;
+
+	/**
 	 * Private initialisation function called in {@link Pool.Create}
 	 * @private
 	 * @param poolInfo {@link IPool | IPool interface props}
 	 */
 	private init: (poolInfo: IPool) => void = async (poolInfo) => {
 		const contract = new ethers.Contract(poolInfo.address, LeveragedPool__factory.abi, this.provider) as LeveragedPool;
-		const [lastUpdate, shortBalance, longBalance, oraclePrice, committer, keeper, updateInterval, frontRunningInterval, name] = await Promise.all([
+		this._contract = contract;
+		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name] = await Promise.all([
 			contract.lastPriceTimestamp(),
-			contract.shortBalance(),
-			contract.longBalance(),
-			contract.getOraclePrice(),
 			poolInfo?.committer?.address ? poolInfo?.committer?.address : contract.poolCommitter(),
 			poolInfo?.keeper ? poolInfo?.keeper : contract.keeper(),
 			poolInfo?.updateInterval ? poolInfo?.updateInterval : contract.updateInterval(),
@@ -133,13 +138,13 @@ export default class Pool {
 			poolInfo.quoteToken?.address ? poolInfo?.quoteToken?.address : contract.quoteToken(),
 		])
 
-		// fetch short and long token info if non is provided
 		const shortToken = await PoolToken.Create({
 			...poolInfo.shortToken,
 			pool: this.address,
 			address: shortTokenAddress,
 			provider: this.provider,
 		})
+		this.shortToken = shortToken;
 
 		const longToken = await PoolToken.Create({
 			...poolInfo.longToken,
@@ -147,57 +152,52 @@ export default class Pool {
 			address: longTokenAddress,
 			provider: this.provider,
 		})
+		this.longToken = longToken;
 
 		const quoteToken = await Token.Create({
 			...poolInfo.quoteToken,
 			address: quoteTokenAddress,
 			provider: this.provider,
 		})
+		this.quoteToken = quoteToken;
 
-		// fetch minimum commit size
 		const poolCommitter = await Committer.Create({
 			address: committer,
 			provider: this.provider,
 			quoteTokenDecimals: quoteToken.decimals,
 			...poolInfo.committer
 		})
+		this.committer = poolCommitter;
 
-		// fetch last keeper price
 		const keeperInstance = new ethers.Contract(keeper, PoolKeeper__factory.abi, this.provider) as PoolKeeper;
-		const lastPrice = await keeperInstance.executionPrice(this.address);
+		this._keeper = keeperInstance;
 
-		const quoteTokenDecimals = quoteToken.decimals;
+		await Promise.all([
+			this.fetchPoolBalances(),
+			this.fetchOraclePrice(),
+			this.fetchLastPrice()
+		])
 
 		// temp fix since the fetched leverage is in IEEE 128 bit. Get leverage amount from name
 		const leverage = parseInt(name.split('-')?.[0] ?? 1);
 
-		// should be 13 things here
 		this.name = name;
 		this.keeper = keeper;
 		this.updateInterval = new BigNumber(updateInterval);
 		this.frontRunningInterval = new BigNumber(frontRunningInterval);
         this.lastUpdate = new BigNumber(lastUpdate.toString());
-        this.lastPrice = new BigNumber(ethers.utils.formatEther(lastPrice));
-        this.shortBalance = new BigNumber(ethers.utils.formatUnits(shortBalance, quoteTokenDecimals));
-        this.longBalance = new BigNumber(ethers.utils.formatUnits(longBalance, quoteTokenDecimals));
-        this.oraclePrice = new BigNumber(ethers.utils.formatEther(oraclePrice));
+
 		this.leverage = leverage;
-
-		this.committer = poolCommitter;
-
-		this.shortToken = shortToken;
-		this.longToken = longToken;
-		this.quoteToken = quoteToken;
 	}
 
 	/**
 	 * Calculates the pools next value transfer in quote token units (eg USD).
-	 * Uses {@link calcNextValueTransfer}.
+	 * Uses {@link getNextValueTransfer}.
 	 * @returns and object containing short and long value transfer. 
 	 * 	The values will be a negation of eachother but this way reads better than 
 	 * 	returning a winning side as well as a value
 	 */
-	public calcNextValueTransfer: () => {
+	public getNextValueTransfer: () => {
 		shortValueTransfer: BigNumber,
 		longValueTransfer: BigNumber,
 	}= () => (
@@ -209,7 +209,7 @@ export default class Pool {
 	 * Uses {@link calcTokenPrice}.
 	 * @returns the long token price in quote token units (eg USD) 
 	 */
-	public calcLongTokenPrice: () => BigNumber = () => (
+	public getLongTokenPrice: () => BigNumber = () => (
 		calcTokenPrice(this.longBalance, this.longToken.supply.plus(this.committer.pendingLong.burn))
 	)
 
@@ -218,7 +218,7 @@ export default class Pool {
 	 * Uses {@link calcTokenPrice}.
 	 * @returns the long token price in quote token units (eg USD) 
 	 */
-	public calcShortTokenPrice: () => BigNumber = () => (
+	public getShortTokenPrice: () => BigNumber = () => (
 		calcTokenPrice(this.shortBalance, this.shortToken.supply.plus(this.committer.pendingShort.burn))
 	)
 
@@ -227,11 +227,11 @@ export default class Pool {
 	 * Uses {@link calcTokenPrice}.
 	 * @returns the long token price in quote token units (eg USD) 
 	 */
-	public calcNextLongTokenPrice: () => BigNumber = () => {
+	public getNextLongTokenPrice: () => BigNumber = () => {
 		// value transfer is +- 
 		const {
 			longValueTransfer	
-		} = this.calcNextValueTransfer();
+		} = this.getNextValueTransfer();
 		return calcTokenPrice(this.longBalance.plus(longValueTransfer), this.longToken.supply.plus(this.committer.pendingLong.burn))
 	}
 
@@ -240,11 +240,138 @@ export default class Pool {
 	 * Uses {@link calcTokenPrice}.
 	 * @returns the long token price in quote token units (eg USD) 
 	 */
-	public calcNextShortTokenPrice: () => BigNumber = () => {
+	public getNextShortTokenPrice: () => BigNumber = () => {
 		// value transfer is +- 
 		const {
 			shortValueTransfer
-		} = this.calcNextValueTransfer();
+		} = this.getNextValueTransfer();
 		return calcTokenPrice(this.shortBalance.plus(shortValueTransfer), this.shortToken.supply.plus(this.committer.pendingShort.burn))
+	}
+
+	/**
+	 * Calculates the resultant long and short balances as if an upkeep occured at t = now
+	 * @returns the pools next long and short balances
+	 */
+	public getNextBalances: () => {
+		nextLongBalance: BigNumber,
+		nextShortbalance: BigNumber
+	} = () => {
+		const {
+			longValueTransfer,
+			shortValueTransfer
+		} = this.getNextValueTransfer();
+		return ({
+			nextLongBalance: this.longBalance.plus(longValueTransfer).plus(this.committer.pendingLong.mint),
+			nextShortbalance: this.shortBalance.plus(shortValueTransfer).plus(this.committer.pendingShort.mint),
+		})
+	}
+
+	/**
+	 * Calculates the pools current skew between long and short balances.
+	 * This is the ratio between the long and short pools
+	 * @returns the pool skew
+	 */
+	public getSkew: () => BigNumber = () => calcSkew(this.shortBalance, this.longBalance);
+
+	/**
+	 * Calculates the resultant skew as if an upkeep occured at t = now
+	 * @returns the pool skew between long and short balances
+	 */
+	public getNextSkew: () => BigNumber = () => {
+		const {
+			nextLongBalance,
+			nextShortbalance
+		}= this.getNextBalances();
+		return calcSkew(nextShortbalance, nextLongBalance)
+	}
+
+	/**
+	 * Fetches and sets the pools long and short balances from the contract state
+	 * @returns the fetched long and short balances
+	 */
+	public fetchPoolBalances: () => Promise<{
+		longBalance: BigNumber,
+		shortBalance: BigNumber,
+	}> = async () => {
+		if (!this._contract) {
+			throw new Error("Failed to update pool balances: this._contract undefined")
+		}
+		const [
+			longBalance_,
+			shortBalance_
+		] = await Promise.all([
+			this._contract.longBalance(),
+			this._contract.shortBalance(),
+		])
+
+        const shortBalance = new BigNumber(ethers.utils.formatUnits(shortBalance_, this.quoteToken.decimals));
+        const longBalance = new BigNumber(ethers.utils.formatUnits(longBalance_, this.quoteToken.decimals));
+
+		this.setLongBalance(longBalance);
+		this.setShortBalance(shortBalance);
+
+		return ({
+			longBalance: longBalance,
+			shortBalance: shortBalance
+		})
+	}
+
+	/** 
+	 * Sets and gets the most up to date oraclePrice
+	 */
+	public fetchOraclePrice: () => Promise<BigNumber> = async () => {
+		if (!this._contract) {
+			throw new Error("Failed to fetch the pools oracle price: this._contract undefined")
+		}
+		const price_ = await this._contract.getOraclePrice();
+		const price = new BigNumber(ethers.utils.formatEther(price_));
+		this.setOraclePrice(price)
+		return price
+	}
+
+	/** 
+	 * Sets and gets the most up to date pool price.
+	 * This is the price the pool used last upkeep 
+	 */
+	public fetchLastPrice: () => Promise<BigNumber> = async () => {
+		if (!this._keeper) {
+			throw new Error("Failed to fetch the pools last price: this._keeper undefined")
+		}
+		const price_ = await this._keeper.executionPrice(this.address);
+		const price = new BigNumber(ethers.utils.formatEther(price_));
+		this.setLastPrice(price)
+		return price
+	}
+
+	/**
+	 * Sets the pools long balance
+	 * @param longBalance balance to set
+	 */
+	public setLongBalance: (longBalance: BigNumber) => void = (longBalance) => {
+		this.longBalance = longBalance;
+	}
+
+	/**
+	 * Sets the pools short balance
+	 * @param shortBalance balance to set
+	 */
+	public setShortBalance: (shortbalance: BigNumber) => void = (shortBalance) => {
+		this.shortBalance = shortBalance;
+	}
+
+	/**
+	 * Sets the pools oracle price
+	 * @param price new price to set
+	 */
+	public setOraclePrice: (price: BigNumber) => void = (price) => {
+		this.oraclePrice = price;
+	}
+
+	/**
+	 * Sets the pools last price
+	 * @param price new price to set
+	 */
+	public setLastPrice: (price: BigNumber) => void = (price) => {
+		this.lastPrice = price;
 	}
 }

@@ -75,14 +75,14 @@ const mockCommitter = {
 	minimumCommitSize: () => committerInfo.minimumCommitSize,
 	shadowPools: (num: number) => {
 		switch (num) {
-			case CommitEnum.long_burn:
-				return ethers.utils.parseUnits(expected.pendingLong.burn.toString(), QUOTE_TOKEN_DECIMALS)
-			case CommitEnum.long_mint:
-				return ethers.utils.parseUnits(expected.pendingLong.mint.toString(), QUOTE_TOKEN_DECIMALS)
-			case CommitEnum.short_burn:
-				return ethers.utils.parseUnits(expected.pendingShort.burn.toString(), QUOTE_TOKEN_DECIMALS)
-			case CommitEnum.short_mint:
-				return ethers.utils.parseUnits(expected.pendingShort.mint.toString(), QUOTE_TOKEN_DECIMALS)
+			case CommitEnum.longBurn:
+				return Promise.resolve(ethers.utils.parseUnits(expected.pendingLong.burn.toString(), QUOTE_TOKEN_DECIMALS))
+			case CommitEnum.longMint:
+				return Promise.resolve(ethers.utils.parseUnits(expected.pendingLong.mint.toString(), QUOTE_TOKEN_DECIMALS))
+			case CommitEnum.shortBurn:
+				return Promise.resolve(ethers.utils.parseUnits(expected.pendingShort.burn.toString(), QUOTE_TOKEN_DECIMALS))
+			case CommitEnum.shortMint:
+				return Promise.resolve(ethers.utils.parseUnits(expected.pendingShort.mint.toString(), QUOTE_TOKEN_DECIMALS))
 			default:
 				return 0
 		}
@@ -108,3 +108,18 @@ describe('Testing committer constructor', () => {
 		)
 	});
 });
+
+describe('Testing commit' ,() => {
+	it('_contract is undefined', async () => {
+		const committer = await createCommitter()
+		committer._contract = undefined;
+		expect(() => committer.commit(CommitEnum.longBurn, 1000)).toThrow("Failed to commit: this._contract undefined")
+	})
+	it('signer is undefined', async () => {
+		const committer = await createCommitter()
+		const mock = jest.fn().mockReturnValue(undefined)
+		committer.provider.getSigner = mock;
+		expect(() => committer.commit(CommitEnum.longBurn, 1000)).toThrow("Failed to commit: provider.getSigner is undefined")
+		expect(mock.mock.calls.length).toBe(1);
+	})
+})

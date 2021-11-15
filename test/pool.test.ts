@@ -181,10 +181,10 @@ describe('Calculating token prices', () => {
 		}))
 		return (
 			createPool(poolConfig.address, poolConfig).then((pool) => {
-				expect(pool.calcLongTokenPrice().toNumber()).toEqual(0.2)
-				expect(pool.calcShortTokenPrice().toNumber()).toEqual(0.1)
-				expect(pool.calcNextLongTokenPrice().toNumber()).toEqual(0.2)
-				expect(pool.calcNextShortTokenPrice().toNumber()).toEqual(0.1)
+				expect(pool.getLongTokenPrice().toNumber()).toEqual(0.2)
+				expect(pool.getShortTokenPrice().toNumber()).toEqual(0.1)
+				expect(pool.getNextLongTokenPrice().toNumber()).toEqual(0.2)
+				expect(pool.getNextShortTokenPrice().toNumber()).toEqual(0.1)
 			})
 		)
 	});
@@ -197,14 +197,14 @@ describe('Calculating token prices', () => {
 		return (
 			createPool(poolConfig.address, poolConfig).then((pool) => {
 
-				const { shortValueTransfer, longValueTransfer } = pool.calcNextValueTransfer();
+				const { shortValueTransfer, longValueTransfer } = pool.getNextValueTransfer();
 				expect(parseFloat(shortValueTransfer.toFixed(2))).toEqual(-24.87)
 				expect(parseFloat(longValueTransfer.toFixed(2))).toEqual(24.87)
 				
-				expect(pool.calcLongTokenPrice().toNumber()).toEqual(0.2)
-				expect(pool.calcShortTokenPrice().toNumber()).toEqual(0.1)
-				expect(parseFloat(pool.calcNextLongTokenPrice().toFixed(2))).toEqual(0.22)
-				expect(parseFloat(pool.calcNextShortTokenPrice().toFixed(2))).toEqual(0.08)
+				expect(pool.getLongTokenPrice().toNumber()).toEqual(0.2)
+				expect(pool.getShortTokenPrice().toNumber()).toEqual(0.1)
+				expect(parseFloat(pool.getNextLongTokenPrice().toFixed(2))).toEqual(0.22)
+				expect(parseFloat(pool.getNextShortTokenPrice().toFixed(2))).toEqual(0.08)
 			})
 		)
 	})
@@ -232,14 +232,14 @@ describe('Calculating token prices', () => {
 		return (
 			createPool(poolConfig.address, poolConfig).then((pool) => {
 
-				const { shortValueTransfer, longValueTransfer } = pool.calcNextValueTransfer();
+				const { shortValueTransfer, longValueTransfer } = pool.getNextValueTransfer();
 				expect(parseFloat(shortValueTransfer.toFixed(2))).toEqual(-24.87)
 				expect(parseFloat(longValueTransfer.toFixed(2))).toEqual(24.87)
 				
-				expect(pool.calcLongTokenPrice().toNumber()).toEqual(0.2)
-				expect(pool.calcShortTokenPrice().toNumber()).toEqual(0.1)
-				expect(parseFloat(pool.calcNextLongTokenPrice().toFixed(2))).toEqual(0.22)
-				expect(parseFloat(pool.calcNextShortTokenPrice().toFixed(2))).toEqual(0.08)
+				expect(pool.getLongTokenPrice().toNumber()).toEqual(0.2)
+				expect(pool.getShortTokenPrice().toNumber()).toEqual(0.1)
+				expect(parseFloat(pool.getNextLongTokenPrice().toFixed(2))).toEqual(0.22)
+				expect(parseFloat(pool.getNextShortTokenPrice().toFixed(2))).toEqual(0.08)
 			})
 		)
 	})
