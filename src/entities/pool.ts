@@ -294,7 +294,7 @@ export default class Pool {
 		shortBalance: BigNumber,
 	}> = async () => {
 		if (!this._contract) {
-			throw new Error("Failed to update pool balances: this._contract undefined")
+			throw Error("Failed to update pool balances: this._contract undefined")
 		}
 		const [
 			longBalance_,
@@ -302,7 +302,9 @@ export default class Pool {
 		] = await Promise.all([
 			this._contract.longBalance(),
 			this._contract.shortBalance(),
-		])
+		]).catch((error) => {
+			throw Error("Failed to update pool balances: " + error?.message ?? error)
+		})
 
         const shortBalance = new BigNumber(ethers.utils.formatUnits(shortBalance_, this.quoteToken.decimals));
         const longBalance = new BigNumber(ethers.utils.formatUnits(longBalance_, this.quoteToken.decimals));
@@ -321,9 +323,11 @@ export default class Pool {
 	 */
 	public fetchOraclePrice: () => Promise<BigNumber> = async () => {
 		if (!this._contract) {
-			throw new Error("Failed to fetch the pools oracle price: this._contract undefined")
+			throw Error("Failed to fetch the pools oracle price: this._contract undefined")
 		}
-		const price_ = await this._contract.getOraclePrice();
+		const price_ = await this._contract.getOraclePrice().catch((error) => {
+			throw Error("Failed to fetch pools oralce price: " + error?.message ?? error)
+		});
 		const price = new BigNumber(ethers.utils.formatEther(price_));
 		this.setOraclePrice(price)
 		return price
@@ -335,9 +339,11 @@ export default class Pool {
 	 */
 	public fetchLastPrice: () => Promise<BigNumber> = async () => {
 		if (!this._keeper) {
-			throw new Error("Failed to fetch the pools last price: this._keeper undefined")
+			throw Error("Failed to fetch pools last price: this._keeper undefined")
 		}
-		const price_ = await this._keeper.executionPrice(this.address);
+		const price_ = await this._keeper.executionPrice(this.address).catch((error) => {
+			throw Error("Failed to fetch pools last price: " + error?.message)
+		});
 		const price = new BigNumber(ethers.utils.formatEther(price_));
 		this.setLastPrice(price)
 		return price

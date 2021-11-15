@@ -114,20 +114,20 @@ const assertPool: (pool: Pool) => void = (pool) => {
 
 const mockPool = {
 	// pool functions
-	lastPriceTimestamp: () => poolConfig.lastPriceTimestamp,
-	shortBalance: () => poolConfig.shortBalance,
-	longBalance: () => poolConfig.longBalance,
-	getOraclePrice: () => poolConfig.oraclePrice,
-	poolCommitter: () => poolConfig.committer.address,
-	keeper: () => poolConfig.keeper,
-	updateInterval: () => poolConfig.updateInterval,
-	frontRunningInterval: () => poolConfig.frontRunningInterval,
-	poolName: () => poolConfig.name,
-	tokens: (num: number) => num === 0 ? poolConfig.longToken.address : poolConfig.shortToken.address,
-	quoteToken: () => poolConfig.quoteToken.address,
+	lastPriceTimestamp: () => Promise.resolve(poolConfig.lastPriceTimestamp),
+	shortBalance: () => Promise.resolve( poolConfig.shortBalance),
+	longBalance: () => Promise.resolve( poolConfig.longBalance),
+	getOraclePrice: () => Promise.resolve( poolConfig.oraclePrice),
+	poolCommitter: () => Promise.resolve( poolConfig.committer.address),
+	keeper: () => Promise.resolve( poolConfig.keeper),
+	updateInterval: () => Promise.resolve( poolConfig.updateInterval),
+	frontRunningInterval: () => Promise.resolve( poolConfig.frontRunningInterval),
+	poolName: () => Promise.resolve( poolConfig.name),
+	tokens: (num: number) => Promise.resolve(num === 0 ? poolConfig.longToken.address : poolConfig.shortToken.address),
+	quoteToken: () => Promise.resolve( poolConfig.quoteToken.address),
 
 	// keeper functions
-	executionPrice: () => poolConfig.lastPrice
+	executionPrice: () => Promise.resolve( poolConfig.lastPrice)
 
 }
 
@@ -192,7 +192,7 @@ describe('Calculating token prices', () => {
 		// @ts-ignore
 		ethers.Contract.mockImplementation(() => ({
 			...mockPool,
-			getOraclePrice: () => ethers.utils.parseEther('1.1')
+			getOraclePrice: () => Promise.resolve(ethers.utils.parseEther('1.1'))
 		}))
 		return (
 			createPool(poolConfig.address, poolConfig).then((pool) => {
@@ -214,7 +214,7 @@ describe('Calculating token prices', () => {
 		// @ts-ignore
 		ethers.Contract.mockImplementation(() => ({
 			...mockPool,
-			getOraclePrice: () => ethers.utils.parseEther('1.1')
+			getOraclePrice: () => Promise.resolve(ethers.utils.parseEther('1.1'))
 		}))
 		// @ts-ignore
 		Committer.Create.mockImplementation(() => ({
