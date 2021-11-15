@@ -3,8 +3,8 @@ import { ethers } from "ethers";
 
 /**
  * Holds burn and mint pending amounts
- * PendingAmounts.mint is the amount of USDC pending in the shadow pools 
- * PendingAmounts.burn is the amount of tokens burned in the shadow pools 
+ * PendingAmounts.mint is the amount of quote token pending in the shadow pools 
+ * PendingAmounts.burn is the amount of to be burned pool tokens in the shadow pools 
  */
 export type PendingAmounts = {
     mint: BigNumber; 

@@ -20,6 +20,9 @@ export default class PoolToken {
 	pool: string;
 	supply: BigNumber;
 
+	/**
+	 * @private
+	 */
 	private constructor () {
 		// these all need to be ovverridden in the init function
 		this.address = '';
@@ -32,7 +35,7 @@ export default class PoolToken {
 	}
 
 	/**
-	 * Replacement constructor patern to support async initialisations
+	 * Replacement constructor pattern to support async initialisations
 	 * @param tokenINfo {@link IPoolToken | IPoolToken interface props}
 	 * @returns a Promise containing an initialised PoolToken class ready to be used
 	 */

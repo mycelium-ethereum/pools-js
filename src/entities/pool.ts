@@ -43,12 +43,12 @@ export interface IPool {
 }
 
 /**
- * LeveragedPool class initiated with an an address and an RPC url.
- * Stores all information to a related pool.
+ * LeveragedPool class initiated with an an `address` and an `rpcURL`.
+ * Stores relevant LeveragedPool information.
  * It is optional for the user to provide additional pool information, reducing
  * 	the number of RPC calls. This optional info is static information
  * 	of the pool, such as names and addresses
- * Constructor is private so must be instantiated with {@linkcode Pool.Create}
+ * The constructor is private so must be instantiated with {@linkcode Pool.Create}
  */
 export default class Pool {
     address: string;
@@ -97,7 +97,7 @@ export default class Pool {
 	}
 
 	/**
-	 * Replacement constructor patern to support async initialisations
+	 * Replacement constructor pattern to support async initialisations
 	 * @param poolInfo {@link IPool| IPool interface props}
 	 * @returns a Promise containing an initialised Pool class ready to be used
 	 */

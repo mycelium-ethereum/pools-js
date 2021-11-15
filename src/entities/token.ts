@@ -21,7 +21,7 @@ export interface TokenInfo {
 
 /**
  * Token class for interacting with ERC20 tokens
- * Constructor is private so must be instantiated with {@linkcode Token.Create}
+ * The constructor is private so must be instantiated with {@linkcode Token.Create}
  */
 export default class Token {
 	address: string;
@@ -30,6 +30,9 @@ export default class Token {
 	symbol: string;
 	decimals: number;
 
+	/**
+	 * @private
+	 */
 	private constructor () {
 		// these all need to be ovverridden in the init function
 		this.address = '';
@@ -40,7 +43,7 @@ export default class Token {
 	}
 
 	/**
-	 * Replacement constructor patern to support async initialisations
+	 * Replacement constructor pattern to support async initialisations
 	 * @param tokenINfo {@link IToken | IToken interface props}
 	 * @returns a Promise containing an initialised Token class ready to be used
 	 */
@@ -53,6 +56,7 @@ export default class Token {
 
 	/**
 	 * Private initialisation function called in {@link Token.Create}
+	 * @private
 	 * @param tokenInfo {@link IToken | IToken interface props}
 	 */
 	private init: (tokenInfo: IToken) => void = async (tokenInfo) => {

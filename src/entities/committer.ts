@@ -9,8 +9,7 @@ import { CommitEnum, IContract, PendingAmounts } from "../types";
 export interface IPoolCommitter extends IContract {
 	quoteTokenDecimals: number;
 	/**
-	 * Minimum commit size can be passed in as a props otherwise, 
-	 * 	it will be instantiated by fetching it from the PoolCommitter contract
+	 * Minimum commit size can be passed in as a props, otherwise, it is instantiated by fetching it from the PoolCommitter contract
 	 */
 	minimumCommitSize?: number;
 }
@@ -19,7 +18,7 @@ export interface IPoolCommitter extends IContract {
  * Interface for interacting with the PoolComitter.
  * Can be used standalone, but is always initialised within a
  * 	{@linkcode Pool}
- * Constructor is private so must be instantiated with {@linkcode Committer.Create}
+ * The constructor is private so must be instantiated with {@linkcode Committer.Create}
  */
 export default class Committer {
 	address: string;
@@ -44,7 +43,7 @@ export default class Committer {
 	}
 
 	/**
-	 * Replacement constructor patern to support async initialisations
+	 * Replacement constructor pattern to support async initialisations
 	 * @param committerInfo {@link IPoolCommitter | IPoolCommitter interface props}
 	 * @returns a Promise containing an initialised Committer class ready to be used
 	 */
