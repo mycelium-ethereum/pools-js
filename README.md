@@ -11,3 +11,8 @@ Since there is a yarn.lock, if you would like to use npm please run
 `yarn` or `npm run install`
 `yarn build` or `npm run build`
 `yarn test` or `npm run test`
+
+## Documentaion
+`yarn` or `npm run install`
+`yarn build:docs` or `npm run build:docs`
+`npx serve ./docs`

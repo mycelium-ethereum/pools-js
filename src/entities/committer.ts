@@ -3,7 +3,7 @@ import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
 import { CommitEnum, IContract, PendingAmounts } from "../types";
 
-interface IPoolCommitter extends IContract {
+export interface IPoolCommitter extends IContract {
 	quoteTokenDecimals: number;
 	minimumCommitSize?: number;
 }

@@ -11,7 +11,7 @@ import PoolToken from "./poolToken";
 import Committer from './committer';
 import { calcNextValueTransfer, calcTokenPrice } from "..";
 
-interface IPool {
+export interface IPool {
 	// address is the only mandatory props
     address: string;
 	rpcURL: string;

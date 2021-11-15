@@ -10,6 +10,7 @@
   "scripts": {
     "test": "jest --runInBand",
     "test:coverage": "jest --runInBand --coverage",
+    "build:docs": "typedoc --tsconfig ./tsconfig.json",
     "build": "rimraf dist && tsc && babel src --extensions \".ts\" --out-dir ./dist",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"
@@ -34,6 +35,7 @@
     "rimraf": "^3.0.2",
     "ts-node": "^10.4.0",
     "tslib": "^2.3.1",
+    "typedoc": "^0.22.9",
     "typescript": "^4.4.4"
   },
   "dependencies": {

@@ -3,3 +3,4 @@ dist
 out
 yarn-error.log
 coverage
+docs
