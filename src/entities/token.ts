@@ -2,9 +2,16 @@ import { ERC20__factory, ERC20 } from "@tracer-protocol/perpetual-pools-contract
 import { ethers } from "ethers";
 import { IContract } from "../types";
 
-
+/**
+ * Token class constructor inputs
+ */
 export interface IToken extends IContract, TokenInfo {}
 
+/**
+ * Token constructor props
+ * Only `address` is required, additional props are encouraged
+ * 	to reduce the number of RPC calls
+ */
 export interface TokenInfo {
 	address: string;
 	name?: string;
@@ -12,6 +19,10 @@ export interface TokenInfo {
 	decimals?: number;
 }
 
+/**
+ * Token class for interacting with ERC20 tokens
+ * Constructor is private so must be instantiated with {@linkcode Token.Create}
+ */
 export default class Token {
 	address: string;
 	provider: ethers.providers.JsonRpcProvider;
@@ -26,8 +37,13 @@ export default class Token {
 		this.name = '';
 		this.symbol = '';
 		this.decimals = 18;
-	} // private constructor
+	}
 
+	/**
+	 * Replacement constructor patern to support async initialisations
+	 * @param tokenINfo {@link IToken | IToken interface props}
+	 * @returns a Promise containing an initialised Token class ready to be used
+	 */
 	public static Create: (tokenInfo: IToken) => Promise<Token> = async (tokenInfo) => {
 		const token = new Token();
 		// initialise the token;
@@ -35,6 +51,10 @@ export default class Token {
 		return token;
 	}
 
+	/**
+	 * Private initialisation function called in {@link Token.Create}
+	 * @param tokenInfo {@link IToken | IToken interface props}
+	 */
 	private init: (tokenInfo: IToken) => void = async (tokenInfo) => {
 		this.provider = tokenInfo.provider;
 		this.address = tokenInfo.address;

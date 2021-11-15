@@ -7,8 +7,8 @@ const NO_CHANGE = 3;
 
 /**
  * Calculate the losing pool multiplier
- * @param newPrice new pool price based on pool balances
- * @param oldPrice old pool price based on pool balances
+ * @param newPrice new market price
+ * @param oldPrice old market price
  * @param leverage pool leverage
  * @returns ratio if the price direction is down and the inverse of ratio if it is up
  */
@@ -21,11 +21,15 @@ export const calcLossMultiplier: (oldPrice: BigNumber, newPrice: BigNumber) => B
 };
 
 /**
- * Calculates the effective returns due to the skew of the pools for the long side
- * @param longBalance quote balance of the long pool in USD
- * @param shortBalance quote balance of the short pool in USD
+ * Calculates the effective multiplier returns for the longs. This amount varies depending on the skew between the long and short balances.
+ * Gain and loss refer to whether the pool is receiving tokens from the other pool or transferring tokens to the opposite pool.
+ * If there is more balance in the long pool than the short pools, you would expect the short pool to have
+ *  `effectiveLongGain > leverage`.
+ * Both sides of the pool will always have an effectiveLoss lower limit at leverage, ie you can never have `effectiveLoss < leverage`.
+ * @param longBalance quote balance of the long pool in quote units (eg USD) 
+ * @param shortBalance quote balance of the short pool in quote units (eg USD)
  * @param leverage pool leverage
- * @returns the effective returns to the short pool on the next rebalance
+ * @returns the effective winning returns to the long pool on next rebalance
  */
 export const calcEffectiveLongGain: (shortBalance: BigNumber, longBalance: BigNumber, leverage: BigNumber) => BigNumber = (shortBalance, longBalance, leverage) => (
     (new BigNumber(1).div(calcSkew(shortBalance, longBalance))).times(leverage)
@@ -33,11 +37,15 @@ export const calcEffectiveLongGain: (shortBalance: BigNumber, longBalance: BigNu
 
 
 /**
- * Calculates the effective returns due to the skew of the pools for the short side
+ * Calculates the effective gains multiplier for the shorts. This amount varies depending on the skew between the long and short balances.
+ * Gain and loss refer to whether the pool is receiving tokens from the other pool or transferring tokens to the opposite pool.
+ * If there is more balance in the long pool than the short pools, you would expect the short pool to have
+ *  `effectiveLongGain > leverage`.
+ * The pools effective losses will always have a lower limit at leverage, ie you can never have `effectiveLoss < leverage`.
  * @param longBalance quote balance of the long pool in USD
  * @param shortBalance quote balance of the short pool in USD
  * @param leverage pool leverage
- * @returns the effective returns to the short pool on the next rebalance
+ * @returns the effective gains to the short pool on next rebalance
  */
 export const calcEffectiveShortGain: (shortBalance: BigNumber, longBalance: BigNumber, leverage: BigNumber) => BigNumber = (shortBalance, longBalance, leverage) => (
     calcSkew(shortBalance, longBalance).times(leverage)
@@ -47,9 +55,9 @@ export const calcEffectiveShortGain: (shortBalance: BigNumber, longBalance: BigN
 const COMPOUND_FREQUENCY = 52;
 
 /**
- * Calculate the compounding gains
+ * Calculates the compounding gains
  * @param apr annual percentage rate
- * @returns annual percentage yield
+ * @returns annual percentage yield coumpounded weekly
  */
 export const calcAPY: (apr: BigNumber) => BigNumber = (apr) => {
     BigNumber.config({ POW_PRECISION: 10 })
@@ -59,11 +67,12 @@ export const calcAPY: (apr: BigNumber) => BigNumber = (apr) => {
 }
 /**
  *
- * Calculate the leveraged losing pool multiplier
- * @param newPrice new pool price based on pool balances
- * @param oldPrice old pool price based on pool balances
+ * Calculates the leverage multiplier of the losing pool.
+ * This multiplier is used to {@linkcode calcLeverageLossTransfer| calculate the percentage loss transfer} between the pools.
+ * @param newPrice new market price
+ * @param oldPrice old market price
  * @param leverage pool leverage
- * @returns ratio^leverage if the price direction is down and the (inverse of ratio)^leverage if it is up
+ * @returns ratio^leverage if the price direction is down and the (1/ratio)^leverage if it is up
  */
 export const calcLeverageLossMultiplier: (oldPrice: BigNumber, newPrice: BigNumber, leverage: BigNumber) => BigNumber =
     (oldPrice, newPrice, leverage) => {
@@ -71,11 +80,11 @@ export const calcLeverageLossMultiplier: (oldPrice: BigNumber, newPrice: BigNumb
     };
 
 /**
- * Calculates the percentage the losing pool must transfer on the next upKeep
- * @param oldPrice old pool price based on pool balances
- * @param newPrice new pool price based on pool balances
+ * Calculates the percentage the losing pool must transfer to the winning pool on next upKeep.
+ * @param oldPrice old market price
+ * @param newPrice new market price
  * @param leverage pool leverage
- * @returns
+ * @returns the percentage loss transfer as a decimal
  */
 export const calcPercentageLossTransfer: (oldPrice: BigNumber, newPrice: BigNumber, leverage: BigNumber) => BigNumber =
     (oldPrice, newPrice, leverage) => {
@@ -97,6 +106,8 @@ export const calcNotionalValue: (tokenPrice: BigNumber, numTokens: BigNumber) =>
 
 /**
  * Calculates the ratio of the old price to the new price
+ * @param oldPrice old market price
+ * @param newPrice new market price
  */
 export const calcRatio: (oldPrice: BigNumber, newPrice: BigNumber) => BigNumber = (oldPrice, newPrice) => {
     if (oldPrice.eq(0)) {
@@ -124,8 +135,8 @@ export const calcRebalanceRate: (shortBalance: BigNumber, longBalance: BigNumber
 
 /**
  * Calcualtes the direction of the price movement
- * @param newPrice new pool price based on pool balances
- * @param oldPrice old pool price based on pool balances
+ * @param newPrice new market price
+ * @param oldPrice old market price
  * @return DOWN (2) if oldPrice > newPrice, NO_CHANGE (3) if newPrice = oldPrice, or UP (1) if newPrice > oldPrice
  */
 export const calcDirection: (oldPrice: BigNumber, newPrice: BigNumber) => BigNumber = (oldPrice, newPrice) => {
@@ -180,8 +191,8 @@ export const calcTokenPrice: (totalQuoteValue: BigNumber, tokenSupply: BigNumber
 /**
  * Calculates how much value will be transferred between the pools
  *
- * @param oldPrice old pool price based on pool balances
- * @param newPrice new pool price based on pool balances
+ * @param oldPrice old market price
+ * @param newPrice new market price
  * @param leverage pool leverage
  * @param longBalance quote balance of the long pool in USD
  * @param shortBalance quote balance of the short pool in USD

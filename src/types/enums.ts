@@ -1,4 +1,7 @@
-// Commit type enum
+/**
+ * Commit type enum
+ * @enum
+ */
 export enum CommitEnum {
     short_mint = 0,
     short_burn = 1,
