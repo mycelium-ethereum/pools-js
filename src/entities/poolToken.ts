@@ -3,6 +3,10 @@ import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
 import { IToken } from "./token";
 
+
+/**
+ * PoolToken class constructor inputs
+ */
 export interface IPoolToken extends IToken {
 	pool: string;
 }
@@ -16,6 +20,9 @@ export default class PoolToken {
 	pool: string;
 	supply: BigNumber;
 
+	/**
+	 * @private
+	 */
 	private constructor () {
 		// these all need to be ovverridden in the init function
 		this.address = '';
@@ -25,15 +32,23 @@ export default class PoolToken {
 		this.decimals = 18;
 		this.pool = '';
 		this.supply = new BigNumber(0);
-	} // private constructor
+	}
 
+	/**
+	 * Replacement constructor pattern to support async initialisations
+	 * @param tokenINfo {@link IPoolToken | IPoolToken interface props}
+	 * @returns a Promise containing an initialised PoolToken class ready to be used
+	 */
 	public static Create: (tokenInfo: IPoolToken) => Promise<PoolToken> = async (tokenInfo) => {
 		const token = new PoolToken();
-		// initialise the token;
 		await token.init(tokenInfo);
 		return token;
 	}
 
+	/**
+	 * Private initialisation function called in {@link PoolToken.Create}
+	 * @param tokenInfo {@link IPoolToken | IPoolToken interface props}
+	 */
 	private init: (tokenInfo: IPoolToken) => void = async (tokenInfo) => {
 		this.provider = tokenInfo.provider;
 		this.address = tokenInfo.address;

@@ -3,11 +3,23 @@ import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
 import { CommitEnum, IContract, PendingAmounts } from "../types";
 
-interface IPoolCommitter extends IContract {
+/**
+ * PoolCommitter class constructor inputs
+ */
+export interface IPoolCommitter extends IContract {
 	quoteTokenDecimals: number;
+	/**
+	 * Minimum commit size can be passed in as a props, otherwise, it is instantiated by fetching it from the PoolCommitter contract
+	 */
 	minimumCommitSize?: number;
 }
 
+/**
+ * Interface for interacting with the PoolComitter.
+ * Can be used standalone, but is always initialised within a
+ * 	{@linkcode Pool}
+ * The constructor is private so must be instantiated with {@linkcode Committer.Create}
+ */
 export default class Committer {
 	address: string;
 	provider: ethers.providers.JsonRpcProvider;
@@ -28,8 +40,13 @@ export default class Committer {
 			burn: new BigNumber(0),
 		}
 		this.minimumCommitSize = new BigNumber(0);
-	} // private constructor
+	}
 
+	/**
+	 * Replacement constructor pattern to support async initialisations
+	 * @param committerInfo {@link IPoolCommitter | IPoolCommitter interface props}
+	 * @returns a Promise containing an initialised Committer class ready to be used
+	 */
 	public static Create: (committerInfo: IPoolCommitter) => Promise<Committer> = async (committerInfo) => {
 		const committer = new Committer();
 		// initialise the token;
@@ -37,6 +54,10 @@ export default class Committer {
 		return committer;
 	}
 
+	/**
+	 * Private initialisation function called in {@link Committer.Create}
+	 * @param committerInfo {@link IPoolCommitter | IPoolCommitter interface props}
+	 */
 	private init: (commitInfo: IPoolCommitter) => void = async (commitInfo) => {
 		this.provider = commitInfo.provider;
 		this.address = commitInfo.address;

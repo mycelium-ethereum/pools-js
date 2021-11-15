@@ -11,14 +11,26 @@ import PoolToken from "./poolToken";
 import Committer from './committer';
 import { calcNextValueTransfer, calcTokenPrice } from "..";
 
-interface IPool {
-	// address is the only mandatory props
+/**
+ * Pool class constructor inputs.
+ * Most values are optional, if no value is provided, the initiator will fetch
+ * 	the information from the contract.
+ * The only required inputs are an `address` and `rpcURL`
+ */
+export interface IPool {
     address: string;
 	rpcURL: string;
 
     name?: string;
+	/**
+	 * Update interaval (time between upkeeps) in seconds.
+	 */
     updateInterval?: number; // in seconds
-    frontRunningInterval?: number; // in seconds
+	/**
+	 * Front running interaval in seconds.
+	 * Time before the upkeep where no more commits are permitted
+	 */
+    frontRunningInterval?: number;
     leverage?: number;
     keeper?: string;
     committer?: {
@@ -31,12 +43,12 @@ interface IPool {
 }
 
 /**
- * Main class for a LeveragedPool. Initiated with an an address and an RPC url.
- * The constructor for this class is private and requires an async initialisation
- * 	via Pool.Create({ address, rpcURL }). 
+ * LeveragedPool class initiated with an an `address` and an `rpcURL`.
+ * Stores relevant LeveragedPool information.
  * It is optional for the user to provide additional pool information, reducing
  * 	the number of RPC calls. This optional info is static information
  * 	of the pool, such as names and addresses
+ * The constructor is private so must be instantiated with {@linkcode Pool.Create}
  */
 export default class Pool {
     address: string;
@@ -69,17 +81,26 @@ export default class Pool {
     shortBalance: BigNumber;
 	// @ts-expect-error is set in Create()
     longBalance: BigNumber;
-    // nextShortBalance: BigNumber;
-    // nextLongBalance: BigNumber;
 
 	// @ts-expect-error is set in Create()
     oraclePrice: BigNumber;
 	
+	/**
+	 * Private constructor to initialise a Pool instance
+	 * @param address LeveragedPool contract address
+	 * @param provider ethers RPC provider
+	 * @private
+	 */
 	private constructor(address: string, provider: ethers.providers.JsonRpcProvider) {
 		this.address = address;
 		this.provider = provider;
 	}
 
+	/**
+	 * Replacement constructor pattern to support async initialisations
+	 * @param poolInfo {@link IPool| IPool interface props}
+	 * @returns a Promise containing an initialised Pool class ready to be used
+	 */
 	public static Create: (poolInfo: IPool) => Promise<Pool> = async (poolInfo) => {
 		const provider = new ethers.providers.JsonRpcProvider(poolInfo.rpcURL);
 		const pool = new Pool(poolInfo.address, provider);
@@ -87,6 +108,11 @@ export default class Pool {
 		return pool;
 	}
 
+	/**
+	 * Private initialisation function called in {@link Pool.Create}
+	 * @private
+	 * @param poolInfo {@link IPool | IPool interface props}
+	 */
 	private init: (poolInfo: IPool) => void = async (poolInfo) => {
 		const contract = new ethers.Contract(poolInfo.address, LeveragedPool__factory.abi, this.provider) as LeveragedPool;
 		const [lastUpdate, shortBalance, longBalance, oraclePrice, committer, keeper, updateInterval, frontRunningInterval, name] = await Promise.all([
@@ -166,6 +192,7 @@ export default class Pool {
 
 	/**
 	 * Calculates the pools next value transfer in quote token units (eg USD).
+	 * Uses {@link calcNextValueTransfer}.
 	 * @returns and object containing short and long value transfer. 
 	 * 	The values will be a negation of eachother but this way reads better than 
 	 * 	returning a winning side as well as a value
@@ -178,7 +205,8 @@ export default class Pool {
 	);
 
 	/**
-	 * Calculates and returns the long token price
+	 * Calculates and returns the long token price.
+	 * Uses {@link calcTokenPrice}.
 	 * @returns the long token price in quote token units (eg USD) 
 	 */
 	public calcLongTokenPrice: () => BigNumber = () => (
@@ -186,7 +214,8 @@ export default class Pool {
 	)
 
 	/**
-	 * Calculates and returns the short token price
+	 * Calculates and returns the short token price.
+	 * Uses {@link calcTokenPrice}.
 	 * @returns the long token price in quote token units (eg USD) 
 	 */
 	public calcShortTokenPrice: () => BigNumber = () => (
@@ -194,7 +223,8 @@ export default class Pool {
 	)
 
 	/**
-	 * Calculates and returns the long token price as if the rebalance occured at t = now
+	 * Calculates and returns the long token price as if the rebalance occured at t = now.
+	 * Uses {@link calcTokenPrice}.
 	 * @returns the long token price in quote token units (eg USD) 
 	 */
 	public calcNextLongTokenPrice: () => BigNumber = () => {
@@ -206,7 +236,8 @@ export default class Pool {
 	}
 
 	/**
-	 * Calculates and returns the short token price as if the rebalance occured at t = now
+	 * Calculates and returns the short token price as if the rebalance occured at t = now.
+	 * Uses {@link calcTokenPrice}.
 	 * @returns the long token price in quote token units (eg USD) 
 	 */
 	public calcNextShortTokenPrice: () => BigNumber = () => {

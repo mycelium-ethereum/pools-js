@@ -1,1 +1,8 @@
+export { default as Pool } from './pool'
+export { default as Committer } from './committer'
+export { default as PoolToken } from './poolToken'
+export { default as Token } from './token'
 export * from './pool'
+export * from './committer'
+export * from './poolToken'
+export * from './token'

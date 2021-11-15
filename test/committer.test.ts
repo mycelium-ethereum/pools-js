@@ -1,9 +1,3 @@
-const chai = require('chai')
-const { use } = chai;
-
-//use default BigNumber
-use(require('chai-bignumber')());
-
 jest.mock('ethers');
 
 import { ethers } from 'ethers';
