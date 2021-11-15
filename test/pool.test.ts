@@ -1,10 +1,3 @@
-
-const chai = require('chai')
-const { use } = chai;
-
-//use default BigNumber
-use(require('chai-bignumber')());
-
 jest.mock('ethers');
 jest.mock('../src/entities/token')
 jest.mock('../src/entities/poolToken')

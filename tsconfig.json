@@ -11,6 +11,7 @@
     "strict": true,  
     "esModuleInterop": false,                          
     "noImplicitAny": true,
+    "skipLibCheck": true,
     "noImplicitThis": true,
     "removeComments": false,
     "suppressImplicitAnyIndexErrors": true,
