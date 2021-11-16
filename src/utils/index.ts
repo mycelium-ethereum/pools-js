@@ -56,7 +56,8 @@ const COMPOUND_FREQUENCY = 52;
 
 /**
  * Calculates the compounding gains
- * @param apr annual percentage rate
+ * @param apr annual percentage rate as a decimal
+ *  eg 1 is a 100% apr
  * @returns annual percentage yield coumpounded weekly
  */
 export const calcAPY: (apr: BigNumber) => BigNumber = (apr) => {
@@ -110,17 +111,15 @@ export const calcNotionalValue: (tokenPrice: BigNumber, numTokens: BigNumber) =>
  * @param newPrice new market price
  */
 export const calcRatio: (oldPrice: BigNumber, newPrice: BigNumber) => BigNumber = (oldPrice, newPrice) => {
-    if (oldPrice.eq(0)) {
-        new BigNumber(0);
-    }
+    if (oldPrice.eq(0)) return new BigNumber(0)
     return newPrice.div(oldPrice);
 };
 
 export const calcSkew: (shortBalance: BigNumber, longBalance: BigNumber) => BigNumber = (shortBalance, longBalance) => {
-    // even rebalance rate is 1 so even skew is 2.
-    // This isnt a fully accurate representation since
-    //  at shortBalance 0 there there will be short incentive to participate
-    if (shortBalance.eq(0)) {
+    if (shortBalance.eq(0) || longBalance.eq(0)) {
+        // This isnt a fully accurate return since
+        //  at shortBalance 0 there there will be incentive to short
+        //  and vice versa for longs
         return new BigNumber(1);
     }
     return longBalance.div(shortBalance);
@@ -242,28 +241,28 @@ export const calcNextValueTransfer: (
  * 	otherwise returns the price of the LP token.
  */
 export const calcBptTokenPrice: (
-    stakingTokenSupply: BigNumber,
+    usdTokenSupply: BigNumber,
 	tokens?: {
 		reserves: BigNumber;
-		usdcPrice: BigNumber;
+		usdPrice: BigNumber;
 	}[]
 ) => BigNumber = (stakingTokenSupply, tokens) => {
     if (!tokens) {
         return new BigNumber(0);
     }
 
-    let balancerPoolUSDCValue = new BigNumber(0);
+    let balancerPoolUSDValue = new BigNumber(0);
 
     for (const token of tokens) {
-        const tokenUSDCValue = token.usdcPrice.times(token.reserves);
-        balancerPoolUSDCValue = balancerPoolUSDCValue.plus(tokenUSDCValue);
+        const tokenUSDValue = calcNotionalValue(token.usdPrice, token.reserves)
+        balancerPoolUSDValue = balancerPoolUSDValue.plus(tokenUSDValue);
     }
 
-    if (balancerPoolUSDCValue.eq(0) || stakingTokenSupply.eq(0)) {
+    if (balancerPoolUSDValue.eq(0) || stakingTokenSupply.eq(0)) {
         return new BigNumber(0);
     }
 
-    return balancerPoolUSDCValue.div(stakingTokenSupply);
+    return balancerPoolUSDValue.div(stakingTokenSupply);
 };
 
 export const calcBptTokenSpotPrice: (
@@ -275,6 +274,15 @@ export const calcBptTokenSpotPrice: (
         weight: BigNumber,
         balance: BigNumber
     }
-) => BigNumber = (sellingToken, buyingToken) => (
-    (sellingToken.balance.div(sellingToken.weight)).div((buyingToken.balance).div(buyingToken.weight))
-)
+) => BigNumber = (sellingToken, buyingToken) => {
+    if (sellingToken.weight.eq(0) || buyingToken.weight.eq(0)) return new BigNumber(0)
+    if (!(sellingToken.weight.plus(buyingToken.weight).eq(1))) {
+        console.error("Token weights do not add to 1")
+        return new BigNumber(0)
+    }
+    if (sellingToken.balance.eq(0) || buyingToken.balance.eq(0)) {
+        console.error("Selling token balance zero")
+        return new BigNumber(0)
+    }
+    return (sellingToken.balance.div(sellingToken.weight)).div((buyingToken.balance).div(buyingToken.weight))
+}
