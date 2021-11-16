@@ -253,20 +253,44 @@ export default class Pool {
 	}
 
 	/**
-	 * Calculates the resultant long and short balances as if an upkeep occured at t = now
-	 * @returns the pools next long and short balances
+	 * Calculates the resultant pool state as if an upkeep occured at t = now.
+	 * Note: If you were to calculate the token price on these expected balances, 
+	 * 	you would have to factor in the amount of new tokens minted from
+	 * 	the pending mint commits. By factoring in the new tokens minted,
+	 * 	you should arrive at the same token price given.
+	 * @returns an object containing the pools expected long and short balances, 
+	 * 	the expectedSkew, and the new token prices
 	 */
-	public getNextBalances: () => {
-		nextLongBalance: BigNumber,
-		nextShortbalance: BigNumber
+	public getNextPoolState: () => {
+		expectedLongBalance: BigNumber,
+		expectedShortBalance: BigNumber,
+		newLongTokenPrice: BigNumber,
+		newShortTokenPrice: BigNumber,
+		expectedSkew: BigNumber,
+		valueTransfer: {
+			longValueTransfer: BigNumber
+			shortValueTransfer: BigNumber
+		}
 	} = () => {
-		const {
-			longValueTransfer,
-			shortValueTransfer
-		} = this.getNextValueTransfer();
+		const valueTransfer = this.getNextValueTransfer();
+		const newLongTokenPrice = this.getNextLongTokenPrice();
+		const newShortTokenPrice = this.getNextShortTokenPrice();
+
+		const netPendingLong = this.committer.pendingLong.mint.plus(this.committer.pendingLong.burn.times(newLongTokenPrice))
+		const netPendingShort = this.committer.pendingShort.mint.plus(this.committer.pendingShort.burn.times(newShortTokenPrice))
+		
+		const expectedLongBalance = this.longBalance.plus(valueTransfer.longValueTransfer).plus(netPendingLong);
+		const expectedShortBalance = this.longBalance.plus(valueTransfer.shortValueTransfer).plus(netPendingShort);
+
+		const expectedSkew = calcSkew(expectedShortBalance, expectedLongBalance);
+
 		return ({
-			nextLongBalance: this.longBalance.plus(longValueTransfer).plus(this.committer.pendingLong.mint),
-			nextShortbalance: this.shortBalance.plus(shortValueTransfer).plus(this.committer.pendingShort.mint),
+			expectedLongBalance, 
+			expectedShortBalance,
+			valueTransfer,
+			newLongTokenPrice,
+			newShortTokenPrice,
+			expectedSkew 
 		})
 	}
 
@@ -276,18 +300,6 @@ export default class Pool {
 	 * @returns the pool skew
 	 */
 	public getSkew: () => BigNumber = () => calcSkew(this.shortBalance, this.longBalance);
-
-	/**
-	 * Calculates the resultant skew as if an upkeep occured at t = now
-	 * @returns the pool skew between long and short balances
-	 */
-	public getNextSkew: () => BigNumber = () => {
-		const {
-			nextLongBalance,
-			nextShortbalance
-		}= this.getNextBalances();
-		return calcSkew(nextShortbalance, nextLongBalance)
-	}
 
 	/**
 	 * Fetches and sets the pools long and short balances from the contract state
