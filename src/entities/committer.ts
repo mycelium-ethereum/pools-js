@@ -144,7 +144,7 @@ export default class Committer {
 	}
 	/**
 	 * Updates all shadow pool balances.
-	 * Calls {@linkcode Committer.fetchShadowPool} on each of the pools.
+	 * Calls {@linkcode Committer.fetchShadowPool} for each of the commit types.
 	 * As such this will also set the internal state of the Class
 	 * @returns all refetched shadow pool balances
 	 */
