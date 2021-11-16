@@ -142,27 +142,27 @@ export default class Pool {
 			poolInfo.quoteToken?.address ? poolInfo?.quoteToken?.address : contract.quoteToken(),
 		])
 
-		const shortToken = await PoolToken.Create({
-			...poolInfo.shortToken,
-			pool: this.address,
-			address: shortTokenAddress,
-			provider: this.provider,
-		})
+		const [shortToken, longToken, quoteToken] = await Promise.all(
+			[
+				PoolToken.Create({
+					...poolInfo.shortToken,
+					pool: this.address,
+					address: shortTokenAddress,
+					provider: this.provider,
+				}), PoolToken.Create({
+					...poolInfo.longToken,
+					pool: this.address,
+					address: longTokenAddress,
+					provider: this.provider,
+				}), Token.Create({
+					...poolInfo.quoteToken,
+					address: quoteTokenAddress,
+					provider: this.provider,
+				})
+			]
+		)
 		this.shortToken = shortToken;
-
-		const longToken = await PoolToken.Create({
-			...poolInfo.longToken,
-			pool: this.address,
-			address: longTokenAddress,
-			provider: this.provider,
-		})
 		this.longToken = longToken;
-
-		const quoteToken = await Token.Create({
-			...poolInfo.quoteToken,
-			address: quoteTokenAddress,
-			provider: this.provider,
-		})
 		this.quoteToken = quoteToken;
 
 		const poolCommitter = await Committer.Create({
