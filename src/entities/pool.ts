@@ -276,8 +276,8 @@ export default class Pool {
 		const newLongTokenPrice = this.getNextLongTokenPrice();
 		const newShortTokenPrice = this.getNextShortTokenPrice();
 
-		const netPendingLong = this.committer.pendingLong.mint.plus(this.committer.pendingLong.burn.times(newLongTokenPrice))
-		const netPendingShort = this.committer.pendingShort.mint.plus(this.committer.pendingShort.burn.times(newShortTokenPrice))
+		const netPendingLong = this.committer.pendingLong.mint.minus(this.committer.pendingLong.burn.times(newLongTokenPrice))
+		const netPendingShort = this.committer.pendingShort.mint.minus(this.committer.pendingShort.burn.times(newShortTokenPrice))
 		
 		const expectedLongBalance = this.longBalance.plus(valueTransfer.longValueTransfer).plus(netPendingLong);
 		const expectedShortBalance = this.longBalance.plus(valueTransfer.shortValueTransfer).plus(netPendingShort);
