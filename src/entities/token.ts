@@ -1,4 +1,4 @@
-import { ERC20__factory, ERC20 } from "@tracer-protocol/perpetual-pools-contracts/types";
+import { ERC20__factory } from "@tracer-protocol/perpetual-pools-contracts/types";
 import { ethers } from "ethers";
 import { IContract } from "../types";
 
@@ -63,11 +63,10 @@ export default class Token {
 		this.provider = tokenInfo.provider;
 		this.address = tokenInfo.address;
 
-		const contract = new ethers.Contract(
+		const contract = ERC20__factory.connect(
 			tokenInfo.address,
-			ERC20__factory.abi,
-			tokenInfo.provider,
-		) as ERC20;
+			tokenInfo.provider
+		)
 
 		const [name, symbol, decimals] = await Promise.all([
 			tokenInfo?.name ? tokenInfo?.name : contract.name(),

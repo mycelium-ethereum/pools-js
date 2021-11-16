@@ -1,4 +1,4 @@
-import { PoolToken__factory, PoolToken as PoolTokenContract } from "@tracer-protocol/perpetual-pools-contracts/types";
+import { PoolToken__factory } from "@tracer-protocol/perpetual-pools-contracts/types";
 import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
 import { IToken } from "./token";
@@ -54,11 +54,10 @@ export default class PoolToken {
 		this.address = tokenInfo.address;
 		this.pool = tokenInfo.pool;
 
-		const contract = new ethers.Contract(
+		const contract = PoolToken__factory.connect(
 			tokenInfo.address,
-			PoolToken__factory.abi,
 			tokenInfo.provider,
-		) as PoolTokenContract;
+		)
 
 		const [name, symbol, decimals, supply] = await Promise.all([
 			tokenInfo?.name ? tokenInfo?.name : contract.name(),

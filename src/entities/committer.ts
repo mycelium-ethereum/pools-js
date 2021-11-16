@@ -73,11 +73,10 @@ export default class Committer {
 		this.address = commitInfo.address;
 		this.quoteTokenDecimals = commitInfo.quoteTokenDecimals;
 
-		const contract = new ethers.Contract(
+		const contract = PoolCommitter__factory.connect(
 			commitInfo.address,
-			PoolCommitter__factory.abi,
 			commitInfo.provider,
-		) as PoolCommitter;
+		)
 		this._contract = contract;
 
 		const providedMinCommitSize = !!commitInfo?.minimumCommitSize;

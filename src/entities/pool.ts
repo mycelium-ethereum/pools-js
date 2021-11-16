@@ -121,8 +121,12 @@ export default class Pool {
 	 * @param poolInfo {@link IPool | IPool interface props}
 	 */
 	private init: (poolInfo: IPool) => void = async (poolInfo) => {
-		const contract = new ethers.Contract(poolInfo.address, LeveragedPool__factory.abi, this.provider) as LeveragedPool;
+		const contract = LeveragedPool__factory.connect(
+			poolInfo.address,
+			this.provider
+		)
 		this._contract = contract;
+		
 		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name] = await Promise.all([
 			contract.lastPriceTimestamp(),
 			poolInfo?.committer?.address ? poolInfo?.committer?.address : contract.poolCommitter(),
@@ -169,7 +173,7 @@ export default class Pool {
 		})
 		this.committer = poolCommitter;
 
-		const keeperInstance = new ethers.Contract(keeper, PoolKeeper__factory.abi, this.provider) as PoolKeeper;
+		const keeperInstance = PoolKeeper__factory.connect(keeper, this.provider)
 		this._keeper = keeperInstance;
 
 		await Promise.all([
