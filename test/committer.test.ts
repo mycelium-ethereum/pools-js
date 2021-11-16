@@ -73,7 +73,7 @@ const assertCommitter: (committer: Committer) => void = (committer) => {
 const mockCommitter = {
 	// committer functions
 	minimumCommitSize: () => committerInfo.minimumCommitSize,
-	shadowPools: (num: number) => {
+	shadowPools: (num: CommitEnum) => {
 		switch (num) {
 			case CommitEnum.longBurn:
 				return Promise.resolve(ethers.utils.parseUnits(expected.pendingLong.burn.toString(), QUOTE_TOKEN_DECIMALS))
