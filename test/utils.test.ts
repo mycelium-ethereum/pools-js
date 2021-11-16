@@ -337,7 +337,7 @@ describe('calc Balance Token Spot Price', () => {
     balance: new BigNumber(1000)
   }
   it('Equal token weight and balance', () => {
-    const spotPrice = calcBptTokenSpotPrice(sellingToken, buyingToken)
+    const spotPrice = calcBptTokenSpotPrice(sellingToken, buyingToken, ZERO)
     expect(spotPrice).to.be.bignumber.equal(1)
   })
   it('Equal token weight differing balances', () => {
@@ -349,9 +349,9 @@ describe('calc Balance Token Spot Price', () => {
       ...buyingToken,
       balance: new BigNumber(2000)
     }
-    let spotPrice = calcBptTokenSpotPrice(cheaperSelling, buyingToken)
+    let spotPrice = calcBptTokenSpotPrice(cheaperSelling, buyingToken, ZERO)
     expect(spotPrice).to.be.bignumber.equal(2)
-    spotPrice = calcBptTokenSpotPrice(sellingToken, cheaperBuying)
+    spotPrice = calcBptTokenSpotPrice(sellingToken, cheaperBuying, ZERO)
     expect(spotPrice).to.be.bignumber.equal(0.5)
   })
 
@@ -364,7 +364,7 @@ describe('calc Balance Token Spot Price', () => {
       ...buyingToken,
       weight: new BigNumber(0.2)
     }
-    const spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying)
+    const spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying, ZERO)
     expect(spotPrice).to.be.bignumber.equal(0.25)
   })
 
@@ -377,7 +377,7 @@ describe('calc Balance Token Spot Price', () => {
       ...buyingToken,
       weight: new BigNumber(0.8)
     }
-    const spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying)
+    const spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying, ZERO)
     expect(spotPrice).to.be.bignumber.equal(4)
   })
 
@@ -390,7 +390,7 @@ describe('calc Balance Token Spot Price', () => {
       ...buyingToken,
       weight: ZERO
     }
-    const spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying)
+    const spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying, ZERO)
     expect(spotPrice).to.be.bignumber.equal(0)
   })
   it('Zeroed balances', () => {
@@ -405,11 +405,11 @@ describe('calc Balance Token Spot Price', () => {
       ...buyingToken,
       balance: new BigNumber(0)
     }
-    let spotPrice = calcBptTokenSpotPrice(weightedSelling, buyingToken)
+    let spotPrice = calcBptTokenSpotPrice(weightedSelling, buyingToken, ZERO)
     expect(spotPrice).to.be.bignumber.equal(0)
-    spotPrice = calcBptTokenSpotPrice(sellingToken, weightedBuying)
+    spotPrice = calcBptTokenSpotPrice(sellingToken, weightedBuying, ZERO)
     expect(spotPrice).to.be.bignumber.equal(0)
-    spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying)
+    spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying, ZERO)
     expect(spotPrice).to.be.bignumber.equal(0)
 
     expect(mock.mock.calls.length).to.equal(3)
@@ -423,8 +423,22 @@ describe('calc Balance Token Spot Price', () => {
       ...buyingToken,
       weight: new BigNumber(0.1),
     }
-    const spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying)
+    const spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying, ZERO)
     expect(spotPrice).to.be.bignumber.equal(0)
+  })
+  it('With swapfee', () => {
+    const weightedSelling = {
+      ...sellingToken,
+      weight: new BigNumber(0.8),
+    }
+    const weightedBuying = {
+      ...buyingToken,
+      weight: new BigNumber(0.2),
+    }
+    let spotPrice = calcBptTokenSpotPrice(sellingToken, buyingToken, new BigNumber(0.1))
+    expect(spotPrice.toNumber()).to.be.bignumber.approximately(1.111, 0.001)
+    spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying, new BigNumber(0.1))
+    expect(spotPrice.toNumber()).to.be.bignumber.approximately(0.277, 0.001)
   })
 })
 

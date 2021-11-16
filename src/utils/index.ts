@@ -265,6 +265,15 @@ export const calcBptTokenPrice: (
     return balancerPoolUSDValue.div(stakingTokenSupply);
 };
 
+/**
+ * Calculates the trade price between two Balancer tokens.
+ * This price is dependent on the reserves deposited on each side
+ *  within the Balancer pool, as well as the weighting of each.
+ * @param sellingToken weight and balance of token that is being sold
+ * @param buyingToken weight and balance of token that is being bought
+ * @param swapFee percentage swap fee in decimals
+ * @returns 
+ */
 export const calcBptTokenSpotPrice: (
     sellingToken: {
         weight: BigNumber,
@@ -273,8 +282,9 @@ export const calcBptTokenSpotPrice: (
     buyingToken: {
         weight: BigNumber,
         balance: BigNumber
-    }
-) => BigNumber = (sellingToken, buyingToken) => {
+    },
+    swapFee: BigNumber
+) => BigNumber = (sellingToken, buyingToken, swapFee) => {
     if (sellingToken.weight.eq(0) || buyingToken.weight.eq(0)) return new BigNumber(0)
     if (!(sellingToken.weight.plus(buyingToken.weight).eq(1))) {
         console.error("Token weights do not add to 1")
@@ -284,5 +294,9 @@ export const calcBptTokenSpotPrice: (
         console.error("Selling token balance zero")
         return new BigNumber(0)
     }
-    return (sellingToken.balance.div(sellingToken.weight)).div((buyingToken.balance).div(buyingToken.weight))
+    const numerator = sellingToken.balance.div(sellingToken.weight);
+    const denominator = buyingToken.balance.div(buyingToken.weight);
+    const swapFeeMultiplier = new BigNumber(1).div(new BigNumber(1).minus(swapFee))
+
+    return (numerator.div(denominator)).times(swapFeeMultiplier);
 }
