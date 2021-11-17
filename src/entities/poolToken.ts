@@ -1,6 +1,7 @@
-import { PoolToken__factory } from "@tracer-protocol/perpetual-pools-contracts/types";
+import { PoolToken__factory, PoolToken as PoolTokenContract } from "@tracer-protocol/perpetual-pools-contracts/types";
 import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
+import { SideEnum } from "..";
 import { IToken } from "./token";
 
 
@@ -9,15 +10,18 @@ import { IToken } from "./token";
  */
 export interface IPoolToken extends IToken {
 	pool: string;
+	side: SideEnum;
 }
 
 export default class PoolToken {
+	_contract?: PoolTokenContract
 	address: string;
 	provider: ethers.providers.JsonRpcProvider;
 	name: string;
 	symbol: string;
 	decimals: number;
 	pool: string;
+	side: SideEnum;
 	supply: BigNumber;
 
 	/**
@@ -31,6 +35,8 @@ export default class PoolToken {
 		this.symbol = '';
 		this.decimals = 18;
 		this.pool = '';
+		// not ideal but it can default to a long token
+		this.side = SideEnum.long;
 		this.supply = new BigNumber(0);
 	}
 
@@ -46,6 +52,15 @@ export default class PoolToken {
 	}
 
 	/**
+	 * Creates an empty PoolToken that can be used as a default
+	 * @returns default constructed pool token
+	 */
+	public static CreateDefault: () => PoolToken = () => {
+		const token = new PoolToken();
+		return token;
+	}
+
+	/**
 	 * Private initialisation function called in {@link PoolToken.Create}
 	 * @param tokenInfo {@link IPoolToken | IPoolToken interface props}
 	 */
@@ -53,11 +68,13 @@ export default class PoolToken {
 		this.provider = tokenInfo.provider;
 		this.address = tokenInfo.address;
 		this.pool = tokenInfo.pool;
+		this.side = tokenInfo.side;
 
 		const contract = PoolToken__factory.connect(
 			tokenInfo.address,
 			tokenInfo.provider,
 		)
+		this._contract = contract;
 
 		const [name, symbol, decimals, supply] = await Promise.all([
 			tokenInfo?.name ? tokenInfo?.name : contract.name(),
@@ -70,5 +87,61 @@ export default class PoolToken {
 		this.symbol = symbol;
 		this.decimals = decimals;
 		this.supply = new BigNumber(ethers.utils.formatUnits(supply, decimals))
+	}
+
+	/**
+	 * Fetch an accounts balance for this token
+	 * @param account Account to check balance of
+	 * @returns The accounts balance formatted in a BigNumber
+	 */
+	public fetchBalance: (account: string) => Promise<BigNumber> = async (account) => {
+		if (!this._contract) {
+			throw Error("Failed to fetch balance: this._contract undefined")
+		}
+		const signer = this.provider?.getSigner();
+		if (!signer) {
+			throw Error("Failed to fetch balance: signer undefined")
+		}
+		const balanceOf = await this._contract.connect(signer).balanceOf(account).catch((error) => {
+			throw Error("Failed to fetch balance: " + error?.message)
+		});
+		return (new BigNumber (ethers.utils.formatUnits(balanceOf, this.decimals)));
+	}
+
+	/**
+	 * Fetch an accounts allowance for a given spender
+	 * @param account Account to check allowance
+	 * @param spender Spender of the accounts tokens
+	 * @returns the allowance the account has given to the spender address to spend this pool token
+	 */
+	public fetchAllowance: (spender: string, account: string) => Promise<BigNumber> = async (account, spender) => {
+		if (!this._contract) {
+			throw Error("Failed to fetch allowance: this._contract undefined")
+		}
+		const signer = this.provider?.getSigner();
+		if (!signer) {
+			throw Error("Failed to fetch allowance: signer undefined")
+		}
+		const balanceOf = await this._contract.connect(signer).allowance(account, spender).catch((error) => {
+			throw Error("Failed to fetch allowance: " + error?.message);
+		});
+		return (new BigNumber (ethers.utils.formatUnits(balanceOf, this.decimals)));
+	}
+
+	/**
+	 * Approve a spender to spend the signers accounts pool tokens
+	 * @param spender the address of the contract that will spend the pool tokens
+	 * @param amount the amount the signer is allowing the spender to spend
+	 * @returns an ethers transaction
+	 */
+	public approve: (spender: string, amount: number | BigNumber) => Promise<ethers.ContractTransaction> = async (spender, amount) => {
+		if (!this._contract) {
+			throw Error("Failed to approve token: this._contract undefined")
+		}
+		const signer = this.provider?.getSigner();
+		if (!signer) {
+			throw Error("Failed to approve token: signer undefined")
+		}
+		return this._contract.connect(signer).approve(spender, ethers.utils.formatUnits(amount.toString(), this.decimals));
 	}
 }

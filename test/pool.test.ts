@@ -100,7 +100,7 @@ const createPool = async (address: string, config?: TestConfig) => (
 
 const assertPool: (pool: Pool) => void = (pool) => {
 	expect(pool.name).toEqual(poolConfig.name)
-	expect(pool.address).toEqual(poolConfig.address)
+	expect(pool.poolInstance.address).toEqual(poolConfig.address)
 	expect(pool.keeper).toEqual(poolConfig.keeper);
 	expect(pool.frontRunningInterval.toNumber()).toEqual(poolConfig.frontRunningInterval)
 	expect(pool.updateInterval.toNumber()).toEqual(poolConfig.updateInterval)

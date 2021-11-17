@@ -64,6 +64,14 @@ export default class Committer {
 		return committer;
 	}
 
+	/** 
+	 * Creates an empty committer that can be used as a default
+	 */
+	public static CreateDefault: () => Committer = () => {
+		const committer = new Committer();
+		return committer;
+	}
+
 	/**
 	 * Private initialisation function called in {@link Committer.Create}
 	 * @param committerInfo {@link IPoolCommitter | IPoolCommitter interface props}

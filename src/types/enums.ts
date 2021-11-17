@@ -8,3 +8,9 @@ export enum CommitEnum {
     longMint = 2,
     longBurn = 3,
 }
+
+// side types
+export enum SideEnum {
+    long = 0,
+    short = 1,
+}

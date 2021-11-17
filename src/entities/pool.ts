@@ -9,18 +9,14 @@ import {
 } from '@tracer-protocol/perpetual-pools-contracts/types';
 import PoolToken from "./poolToken";
 import Committer from './committer';
-import { calcNextValueTransfer, calcSkew, calcTokenPrice } from "..";
+import { calcNextValueTransfer, calcSkew, calcTokenPrice, SideEnum } from "..";
 
 /**
- * Pool class constructor inputs.
- * Most values are optional, if no value is provided, the initiator will fetch
- * 	the information from the contract.
- * The only required inputs are an `address` and `rpcURL`
+ * Static pool info that can be passed in as props
+ * Most is optional except the address, this is a requirement
  */
-export interface IPool {
+export interface StaticPoolInfo {
     address: string;
-	rpcURL: string;
-
     name?: string;
 	/**
 	 * Update interaval (time between upkeeps) in seconds.
@@ -35,12 +31,22 @@ export interface IPool {
     keeper?: string;
     committer?: {
 		address: string;
-		minimumCommitSize: number;
+		minimumCommitSize?: number;
 	}
     shortToken?: TokenInfo;
     longToken?: TokenInfo;
     quoteToken?: TokenInfo;
 }
+
+/**
+ * Pool class constructor inputs.
+ * Most values are optional, if no value is provided, the initiator will fetch
+ * 	the information from the contract.
+ * The only required inputs are an `address` and `rpcURL`
+ */
+export interface IPool extends StaticPoolInfo {
+	provider: ethers.providers.JsonRpcProvider;
+} 
 
 /**
  * LeveragedPool class initiated with an an `address` and an `rpcURL`.
@@ -57,34 +63,19 @@ export default class Pool {
 	_contract?: LeveragedPool;
 	_keeper?: PoolKeeper;
 	// these errors are because there is nothing initialised in constructor
-	// @ts-expect-error is set in Create()
     name: string;
-	// @ts-expect-error is set in Create()
     updateInterval: BigNumber;
-	// @ts-expect-error is set in Create()
     frontRunningInterval: BigNumber;
-	// @ts-expect-error is set in Create()
     leverage: number;
-	// @ts-expect-error is set in Create()
     keeper: string;
-	// @ts-expect-error is set in Create()
     committer: Committer;
-	// @ts-expect-error is set in Create()
     shortToken: PoolToken;
-	// @ts-expect-error is set in Create()
     longToken: PoolToken;
-	// @ts-expect-error is set in Create()
     quoteToken: Token;
-	// @ts-expect-error is set in Create()
     lastUpdate: BigNumber;
-	// @ts-expect-error is set in Create()
     lastPrice: BigNumber;
-	// @ts-expect-error is set in Create()
     shortBalance: BigNumber;
-	// @ts-expect-error is set in Create()
     longBalance: BigNumber;
-
-	// @ts-expect-error is set in Create()
     oraclePrice: BigNumber;
 	
 	/**
@@ -96,6 +87,21 @@ export default class Pool {
 	private constructor(address: string, provider: ethers.providers.JsonRpcProvider) {
 		this.address = address;
 		this.provider = provider;
+
+		this.name = '';
+		this.updateInterval = new BigNumber (0);
+		this.frontRunningInterval = new BigNumber (0);
+		this.leverage = 1;
+		this.keeper = '';
+		this.committer = Committer.CreateDefault();
+		this.shortToken = PoolToken.CreateDefault();
+		this.longToken = PoolToken.CreateDefault();
+		this.quoteToken = Token.CreateDefault();
+		this.lastUpdate = new BigNumber(0);
+		this.lastPrice = new BigNumber(0);
+		this.shortBalance = new BigNumber(0);
+		this.longBalance = new BigNumber(0);
+		this.oraclePrice = new BigNumber(0);
 	}
 
 	/**
@@ -104,9 +110,16 @@ export default class Pool {
 	 * @returns a Promise containing an initialised Pool class ready to be used
 	 */
 	public static Create: (poolInfo: IPool) => Promise<Pool> = async (poolInfo) => {
-		const provider = new ethers.providers.JsonRpcProvider(poolInfo.rpcURL);
-		const pool = new Pool(poolInfo.address, provider);
+		const pool = new Pool(poolInfo.address, poolInfo.provider);
 		await pool.init(poolInfo);
+		return pool;
+	}
+
+	/** 
+	 * Creates an empty pool that can be used as a default
+	 */
+	public static CreateDefault: () => Pool = () => {
+		const pool = new Pool('', new ethers.providers.JsonRpcProvider());
 		return pool;
 	}
 
@@ -149,11 +162,13 @@ export default class Pool {
 					pool: this.address,
 					address: shortTokenAddress,
 					provider: this.provider,
+					side: SideEnum.short
 				}), PoolToken.Create({
 					...poolInfo.longToken,
 					pool: this.address,
 					address: longTokenAddress,
 					provider: this.provider,
+					side: SideEnum.long
 				}), Token.Create({
 					...poolInfo.quoteToken,
 					address: quoteTokenAddress,
@@ -365,6 +380,22 @@ export default class Pool {
 		return price
 	}
 
+	/** 
+	 * Sets and gets the most up to date pool price.
+	 * This is the price the pool used last upkeep 
+	 */
+	public fetchLastPriceTimestamp: () => Promise<BigNumber> = async () => {
+		if (!this._contract) {
+			throw Error("Failed to fetch pools last price timestamp: this._contract undefined")
+		}
+		const timestamp_ = await this._contract?.lastPriceTimestamp().catch((error) => {
+			throw Error("Failed to fetch pools last price timestamp: " + error?.message)
+		});
+		const timestamp = new BigNumber(timestamp_.toString());
+		this.setLastPriceTimestamp(timestamp)
+		return timestamp 
+	}
+
 	/**
 	 * Sets the pools long balance
 	 * @param longBalance balance to set
@@ -395,5 +426,12 @@ export default class Pool {
 	 */
 	public setLastPrice: (price: BigNumber) => void = (price) => {
 		this.lastPrice = price;
+	}
+	/**
+	 * Sets the pools last price
+	 * @param price new price to set
+	 */
+	public setLastPriceTimestamp: (timestamp: BigNumber) => void = (timestamp) => {
+		this.lastUpdate = timestamp;
 	}
 }
