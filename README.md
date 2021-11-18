@@ -33,7 +33,7 @@ The main class for interacting with LeveragedPools. To get started its as simple
 import { Pool } from '@tracer-protocol/pools-js'
 
 const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
-const poolAddress = 0xPoolAddress
+const poolAddress = "0xPoolAddress"
 
 // option 1
 const someAsyncFunc = async () => {
@@ -60,7 +60,7 @@ functions used below can also be called on `pool.quoteToken`.
 import { Pool, SideEnum } from '@tracer-protocol/pools-js'
 
 const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
-const poolAddress = 0xPoolAddress
+const poolAddress = "0xPoolAddress"
 
 const someAsyncFunc = async () => {
 	const pool = await Pool.Create({
