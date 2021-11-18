@@ -1,4 +1,5 @@
-import { ERC20__factory, ERC20 } from "@tracer-protocol/perpetual-pools-contracts/types";
+import { ERC20, ERC20__factory } from "@tracer-protocol/perpetual-pools-contracts/types";
+import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
 import { IContract } from "../types";
 
@@ -24,6 +25,7 @@ export interface TokenInfo {
  * The constructor is private so must be instantiated with {@linkcode Token.Create}
  */
 export default class Token {
+	_contract?: ERC20;
 	address: string;
 	provider: ethers.providers.JsonRpcProvider;
 	name: string;
@@ -55,6 +57,15 @@ export default class Token {
 	}
 
 	/**
+	 * Creates an empty Token that can be used as a default
+	 * @returns default constructed token
+	 */
+	public static CreateDefault: () => Token = () => {
+		const token = new Token();
+		return token;
+	}
+
+	/**
 	 * Private initialisation function called in {@link Token.Create}
 	 * @private
 	 * @param tokenInfo {@link IToken | IToken interface props}
@@ -63,11 +74,11 @@ export default class Token {
 		this.provider = tokenInfo.provider;
 		this.address = tokenInfo.address;
 
-		const contract = new ethers.Contract(
+		const contract = ERC20__factory.connect(
 			tokenInfo.address,
-			ERC20__factory.abi,
-			tokenInfo.provider,
-		) as ERC20;
+			tokenInfo.provider
+		)
+		this._contract = contract;
 
 		const [name, symbol, decimals] = await Promise.all([
 			tokenInfo?.name ? tokenInfo?.name : contract.name(),
@@ -78,5 +89,61 @@ export default class Token {
 		this.name = name;
 		this.symbol = symbol;
 		this.decimals = decimals;
+	}
+
+	/**
+	 * Fetch an accounts balance for this token
+	 * @param account Account to check balance of
+	 * @returns The accounts balance formatted in a BigNumber
+	 */
+	public fetchBalance: (account: string) => Promise<BigNumber> = async (account) => {
+		if (!this._contract) {
+			throw Error("Failed to fetch balance: this._contract undefined")
+		}
+		const signer = this.provider?.getSigner();
+		if (!signer) {
+			throw Error("Failed to fetch balance: signer undefined")
+		}
+		const balanceOf = await this._contract.connect(signer).balanceOf(account).catch((error) => {
+			throw Error("Failed to fetch balance: " + error?.message)
+		});
+		return (new BigNumber (ethers.utils.formatUnits(balanceOf, this.decimals)));
+	}
+
+	/**
+	 * Fetch an accounts allowance for a given spender
+	 * @param account Account to check allowance
+	 * @param spender Spender of the accounts tokens
+	 * @returns the allowance the account has given to the spender address to spend this token
+	 */
+	public fetchAllowance: (spender: string, account: string) => Promise<BigNumber> = async (account, spender) => {
+		if (!this._contract) {
+			throw Error("Failed to fetch allowance: this._contract undefined")
+		}
+		const signer = this.provider?.getSigner();
+		if (!signer) {
+			throw Error("Failed to fetch allowance: signer undefined")
+		}
+		const balanceOf = await this._contract.connect(signer).allowance(account, spender).catch((error) => {
+			throw Error("Failed to fetch allowance: " + error?.message);
+		});
+		return (new BigNumber (ethers.utils.formatUnits(balanceOf, this.decimals)));
+	}
+
+	/**
+	 * Approve a spender to spend the signers accounts tokens
+	 * @param spender the address of the contract that will spend the tokens
+	 * @param amount the amount the signer is allowing the spender to spend
+	 * @returns an ethers transaction
+	 */
+	public approve: (spender: string, amount: number | BigNumber) => Promise<ethers.ContractTransaction> = async (spender, amount) => {
+		if (!this._contract) {
+			throw Error("Failed to approve token: this._contract undefined")
+		}
+		const signer = this.provider?.getSigner();
+		if (!signer) {
+			throw Error("Failed to approve token: signer undefined")
+		}
+		return this._contract.connect(signer).approve(spender, ethers.utils.formatUnits(amount.toString(), this.decimals));
 	}
 }

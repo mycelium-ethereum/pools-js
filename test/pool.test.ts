@@ -100,7 +100,7 @@ const createPool = async (address: string, config?: TestConfig) => (
 
 const assertPool: (pool: Pool) => void = (pool) => {
 	expect(pool.name).toEqual(poolConfig.name)
-	expect(pool.address).toEqual(poolConfig.address)
+	expect(pool.poolInstance.address).toEqual(poolConfig.address)
 	expect(pool.keeper).toEqual(poolConfig.keeper);
 	expect(pool.frontRunningInterval.toNumber()).toEqual(poolConfig.frontRunningInterval)
 	expect(pool.updateInterval.toNumber()).toEqual(poolConfig.updateInterval)
@@ -114,20 +114,20 @@ const assertPool: (pool: Pool) => void = (pool) => {
 
 const mockPool = {
 	// pool functions
-	lastPriceTimestamp: () => poolConfig.lastPriceTimestamp,
-	shortBalance: () => poolConfig.shortBalance,
-	longBalance: () => poolConfig.longBalance,
-	getOraclePrice: () => poolConfig.oraclePrice,
-	poolCommitter: () => poolConfig.committer.address,
-	keeper: () => poolConfig.keeper,
-	updateInterval: () => poolConfig.updateInterval,
-	frontRunningInterval: () => poolConfig.frontRunningInterval,
-	poolName: () => poolConfig.name,
-	tokens: (num: number) => num === 0 ? poolConfig.longToken.address : poolConfig.shortToken.address,
-	quoteToken: () => poolConfig.quoteToken.address,
+	lastPriceTimestamp: () => Promise.resolve(poolConfig.lastPriceTimestamp),
+	shortBalance: () => Promise.resolve( poolConfig.shortBalance),
+	longBalance: () => Promise.resolve( poolConfig.longBalance),
+	getOraclePrice: () => Promise.resolve( poolConfig.oraclePrice),
+	poolCommitter: () => Promise.resolve( poolConfig.committer.address),
+	keeper: () => Promise.resolve( poolConfig.keeper),
+	updateInterval: () => Promise.resolve( poolConfig.updateInterval),
+	frontRunningInterval: () => Promise.resolve( poolConfig.frontRunningInterval),
+	poolName: () => Promise.resolve( poolConfig.name),
+	tokens: (num: number) => Promise.resolve(num === 0 ? poolConfig.longToken.address : poolConfig.shortToken.address),
+	quoteToken: () => Promise.resolve( poolConfig.quoteToken.address),
 
 	// keeper functions
-	executionPrice: () => poolConfig.lastPrice
+	executionPrice: () => Promise.resolve( poolConfig.lastPrice)
 
 }
 
@@ -181,10 +181,10 @@ describe('Calculating token prices', () => {
 		}))
 		return (
 			createPool(poolConfig.address, poolConfig).then((pool) => {
-				expect(pool.calcLongTokenPrice().toNumber()).toEqual(0.2)
-				expect(pool.calcShortTokenPrice().toNumber()).toEqual(0.1)
-				expect(pool.calcNextLongTokenPrice().toNumber()).toEqual(0.2)
-				expect(pool.calcNextShortTokenPrice().toNumber()).toEqual(0.1)
+				expect(pool.getLongTokenPrice().toNumber()).toEqual(0.2)
+				expect(pool.getShortTokenPrice().toNumber()).toEqual(0.1)
+				expect(pool.getNextLongTokenPrice().toNumber()).toEqual(0.2)
+				expect(pool.getNextShortTokenPrice().toNumber()).toEqual(0.1)
 			})
 		)
 	});
@@ -192,19 +192,19 @@ describe('Calculating token prices', () => {
 		// @ts-ignore
 		ethers.Contract.mockImplementation(() => ({
 			...mockPool,
-			getOraclePrice: () => ethers.utils.parseEther('1.1')
+			getOraclePrice: () => Promise.resolve(ethers.utils.parseEther('1.1'))
 		}))
 		return (
 			createPool(poolConfig.address, poolConfig).then((pool) => {
 
-				const { shortValueTransfer, longValueTransfer } = pool.calcNextValueTransfer();
+				const { shortValueTransfer, longValueTransfer } = pool.getNextValueTransfer();
 				expect(parseFloat(shortValueTransfer.toFixed(2))).toEqual(-24.87)
 				expect(parseFloat(longValueTransfer.toFixed(2))).toEqual(24.87)
 				
-				expect(pool.calcLongTokenPrice().toNumber()).toEqual(0.2)
-				expect(pool.calcShortTokenPrice().toNumber()).toEqual(0.1)
-				expect(parseFloat(pool.calcNextLongTokenPrice().toFixed(2))).toEqual(0.22)
-				expect(parseFloat(pool.calcNextShortTokenPrice().toFixed(2))).toEqual(0.08)
+				expect(pool.getLongTokenPrice().toNumber()).toEqual(0.2)
+				expect(pool.getShortTokenPrice().toNumber()).toEqual(0.1)
+				expect(parseFloat(pool.getNextLongTokenPrice().toFixed(2))).toEqual(0.22)
+				expect(parseFloat(pool.getNextShortTokenPrice().toFixed(2))).toEqual(0.08)
 			})
 		)
 	})
@@ -214,7 +214,7 @@ describe('Calculating token prices', () => {
 		// @ts-ignore
 		ethers.Contract.mockImplementation(() => ({
 			...mockPool,
-			getOraclePrice: () => ethers.utils.parseEther('1.1')
+			getOraclePrice: () => Promise.resolve(ethers.utils.parseEther('1.1'))
 		}))
 		// @ts-ignore
 		Committer.Create.mockImplementation(() => ({
@@ -232,14 +232,14 @@ describe('Calculating token prices', () => {
 		return (
 			createPool(poolConfig.address, poolConfig).then((pool) => {
 
-				const { shortValueTransfer, longValueTransfer } = pool.calcNextValueTransfer();
+				const { shortValueTransfer, longValueTransfer } = pool.getNextValueTransfer();
 				expect(parseFloat(shortValueTransfer.toFixed(2))).toEqual(-24.87)
 				expect(parseFloat(longValueTransfer.toFixed(2))).toEqual(24.87)
 				
-				expect(pool.calcLongTokenPrice().toNumber()).toEqual(0.2)
-				expect(pool.calcShortTokenPrice().toNumber()).toEqual(0.1)
-				expect(parseFloat(pool.calcNextLongTokenPrice().toFixed(2))).toEqual(0.22)
-				expect(parseFloat(pool.calcNextShortTokenPrice().toFixed(2))).toEqual(0.08)
+				expect(pool.getLongTokenPrice().toNumber()).toEqual(0.2)
+				expect(pool.getShortTokenPrice().toNumber()).toEqual(0.1)
+				expect(parseFloat(pool.getNextLongTokenPrice().toFixed(2))).toEqual(0.22)
+				expect(parseFloat(pool.getNextShortTokenPrice().toFixed(2))).toEqual(0.08)
 			})
 		)
 	})

@@ -10,24 +10,20 @@ import { BigNumber } from 'bignumber.js';
 import {
   calcPercentageLossTransfer,
   calcNextValueTransfer,
-  calcTokenPrice
+  calcTokenPrice,
+  calcEffectiveLongGain,
+  calcEffectiveShortGain,
+  calcRebalanceRate,
+  calcNotionalValue,
+  calcLossMultiplier,
+  calcAPY,
+  calcBptTokenPrice,
+  calcBptTokenSpotPrice
 } from "../src/utils";
 
 const TOKEN_SUPPLY = new BigNumber(1000000000);
 
-describe('calcTokenPrice', () => {
-  it('no deposits', () => {
-    // starting token price is 1
-    const tokenPrice = calcTokenPrice(new BigNumber(0), TOKEN_SUPPLY)
-    expect(tokenPrice).to.be.bignumber.equal(1);
-  });
-  it('no supply', () => {
-    // price ratio 1/1
-    const tokenPrice = calcTokenPrice(new BigNumber(1000), new BigNumber(0))
-    expect(tokenPrice).to.be.bignumber.equal(1);
-  });
-});
-
+const ZERO = new BigNumber(0);
 const ONE_X = new BigNumber(1);
 const THREE_X = new BigNumber(3);
 
@@ -45,6 +41,26 @@ const LESS_LONG = {
   shortBalance: new BigNumber(10000)
 }
 
+describe('calcTokenPrice', () => {
+  it('Happy path', () => {
+    let tokenPrice = calcTokenPrice(new BigNumber(1000), new BigNumber(1000))
+    expect(tokenPrice).to.be.bignumber.equal(1);
+    tokenPrice = calcTokenPrice(new BigNumber(1000), new BigNumber(10000))
+    expect(tokenPrice).to.be.bignumber.equal(0.1);
+    tokenPrice = calcTokenPrice(new BigNumber(10000), new BigNumber(1000))
+    expect(tokenPrice).to.be.bignumber.equal(10);
+  });
+  it('No deposits', () => {
+    // starting token price is 1
+    const tokenPrice = calcTokenPrice(new BigNumber(0), TOKEN_SUPPLY)
+    expect(tokenPrice).to.be.bignumber.equal(1);
+  });
+  it('No supply', () => {
+    // price ratio 1/1
+    const tokenPrice = calcTokenPrice(new BigNumber(1000), new BigNumber(0))
+    expect(tokenPrice).to.be.bignumber.equal(1);
+  });
+});
 
 describe('calcNextValueTransfer', () => {
   it('No price change', () => {
@@ -142,3 +158,305 @@ describe('calcNextValueTransfer', () => {
     expect(transfers.longValueTransfer).to.be.bignumber.equal(approxValueTransfer.negated());
   });
 });
+
+describe('calcEffectiveGain', () => {
+  const longBalance = new BigNumber(1000)
+  const shortBalance = new BigNumber(1000)
+  it('Equal', () => {
+    let effectiveGain = calcEffectiveLongGain(shortBalance, longBalance, THREE_X);
+    expect(effectiveGain).to.be.bignumber.equal(THREE_X)
+
+    effectiveGain = calcEffectiveLongGain(shortBalance, longBalance, ONE_X);
+    expect(effectiveGain).to.be.bignumber.equal(ONE_X)
+  })
+
+  it('Higher long gain', () => {
+    let effectiveLongGain= calcEffectiveLongGain(shortBalance, longBalance.minus(100), THREE_X);
+    let effectiveShortGain = calcEffectiveShortGain(shortBalance, longBalance.minus(100), THREE_X);
+    expect(effectiveLongGain.toNumber()).to.be.bignumber.approximately(3.333, 0.001)
+    expect(effectiveShortGain).to.be.bignumber.equal(2.7)
+
+    effectiveLongGain = calcEffectiveLongGain(shortBalance, longBalance.minus(100), ONE_X);
+    effectiveShortGain = calcEffectiveShortGain(shortBalance, longBalance.minus(100), ONE_X);
+    expect(effectiveLongGain.toNumber()).to.be.bignumber.approximately(1.111, 0.001)
+    expect(effectiveShortGain).to.be.bignumber.equal(0.9)
+  })
+
+  it('Higher short gain', () => {
+    let effectiveLongGain = calcEffectiveLongGain(shortBalance.minus(100), longBalance, THREE_X);
+    let effectiveShortGain = calcEffectiveShortGain(shortBalance.minus(100), longBalance, THREE_X);
+    expect(effectiveShortGain.toNumber()).to.be.bignumber.approximately(3.333, 0.001)
+    expect(effectiveLongGain).to.be.bignumber.equal(2.7)
+
+    effectiveLongGain = calcEffectiveLongGain(shortBalance.minus(100), longBalance, ONE_X);
+    effectiveShortGain = calcEffectiveShortGain(shortBalance.minus(100), longBalance, ONE_X);
+    expect(effectiveShortGain.toNumber()).to.be.bignumber.approximately(1.111, 0.001)
+    expect(effectiveLongGain).to.be.bignumber.equal(0.9)
+  })
+
+  it('Both balances 0', () => {
+    const effectiveLongGain = calcEffectiveLongGain(ZERO, ZERO, THREE_X);
+    const effectiveShortGain = calcEffectiveShortGain(ZERO, ZERO, THREE_X);
+    expect(effectiveLongGain).to.be.bignumber.equal(THREE_X)
+    expect(effectiveShortGain).to.be.bignumber.equal(THREE_X)
+  })
+  it('Short balance is 0', () => {
+    const effectiveLongGain = calcEffectiveLongGain(ZERO, longBalance, THREE_X);
+    const effectiveShortGain = calcEffectiveShortGain(ZERO, longBalance, THREE_X);
+    expect(effectiveLongGain).to.be.bignumber.equal(THREE_X)
+    expect(effectiveShortGain).to.be.bignumber.equal(THREE_X)
+  })
+  it('Long balance is 0', () => {
+    const effectiveLongGain = calcEffectiveLongGain(shortBalance, ZERO, THREE_X);
+    const effectiveShortGain = calcEffectiveLongGain(shortBalance, ZERO, THREE_X);
+    expect(effectiveLongGain).to.be.bignumber.equal(THREE_X)
+    expect(effectiveShortGain).to.be.bignumber.equal(THREE_X)
+  })
+})
+
+describe('calcRebalanceRate', () => {
+  const longBalance = new BigNumber(1000);
+  const shortBalance = new BigNumber(1000);
+
+  it('Equal balances', () => {
+    const rebalanceRate = calcRebalanceRate(shortBalance, longBalance)
+    expect(rebalanceRate).to.be.bignumber.equal(0)
+  })
+
+  it('Higher long balance', () => {
+    const rebalanceRate = calcRebalanceRate(shortBalance.minus(100), longBalance)
+    expect(rebalanceRate.toNumber()).to.be.bignumber.approximately(0.111, 0.001)
+  })
+
+  it('Higher short balance', () => {
+    const rebalanceRate = calcRebalanceRate(shortBalance, longBalance.minus(100))
+    expect(rebalanceRate).to.be.bignumber.equal(-0.1)
+  })
+
+  it('Short balance is 0', () => {
+    const rebalanceRate = calcRebalanceRate(ZERO, longBalance)
+    expect(rebalanceRate).to.be.bignumber.equal(0)
+  })
+  it('Long balance is 0', () => {
+    const rebalanceRate = calcRebalanceRate(ZERO, longBalance)
+    expect(rebalanceRate).to.be.bignumber.equal(0)
+  })
+  it('Both balances 0', () => {
+    const rebalanceRate = calcRebalanceRate(ZERO, longBalance)
+    expect(rebalanceRate).to.be.bignumber.equal(0)
+  })
+})
+
+describe('calcNotionalValue', () => {
+  const numTokens = new BigNumber(100)
+  it('Calcs notional value', () => {
+    let notionalValue = calcNotionalValue(new BigNumber(1), numTokens)
+    expect(notionalValue).to.be.bignumber.equal(100)
+    notionalValue = calcNotionalValue(new BigNumber(0), numTokens)
+    expect(notionalValue).to.be.bignumber.equal(0)
+    notionalValue = calcNotionalValue(new BigNumber(2), numTokens)
+    expect(notionalValue).to.be.bignumber.equal(200)
+  })
+})
+
+describe('calcLossMultiplier', () => {
+  const oldPrice = new BigNumber(2)
+  it('No price change', () => {
+    const lossMultiplier = calcLossMultiplier(oldPrice, oldPrice)
+    expect(lossMultiplier).to.be.bignumber.equal(1)
+  })
+  it('Price increase', () => {
+    const lossMultiplier = calcLossMultiplier(oldPrice, oldPrice.plus(0.1))
+    expect(lossMultiplier.toNumber()).to.be.bignumber.approximately(0.952, 0.001)
+  })
+  it('Price decrease', () => {
+    const lossMultiplier = calcLossMultiplier(oldPrice, oldPrice.minus(0.1))
+    expect(lossMultiplier).to.be.bignumber.equal(0.95)
+  })
+  it('Zeroed balances', () => {
+    let lossMultiplier = calcLossMultiplier(ZERO, oldPrice.minus(0.1))
+    expect(lossMultiplier).to.be.bignumber.equal(0)
+    lossMultiplier = calcLossMultiplier(oldPrice, ZERO)
+    expect(lossMultiplier).to.be.bignumber.equal(0)
+    lossMultiplier = calcLossMultiplier(ZERO, ZERO)
+    expect(lossMultiplier).to.be.bignumber.equal(0)
+  })
+})
+
+describe('calcBalancerTokenPrice', () => {
+  const usdTokenSupply = new BigNumber(1000);
+  const tokenReserves = new BigNumber(10000);
+  it('Token notional equal to reserves', () => {
+    const bptTokenPrice = calcBptTokenPrice(usdTokenSupply, [
+      {
+        reserves: tokenReserves,
+        usdPrice: new BigNumber(0.1)
+      }
+    ])
+    expect(bptTokenPrice).to.be.bignumber.equal(1)
+  })
+  it('Token notional equal to reserves', () => {
+    const bptTokenPrice = calcBptTokenPrice(usdTokenSupply, [
+      {
+        reserves: tokenReserves,
+        usdPrice: new BigNumber(0.1)
+      },
+      {
+        reserves: tokenReserves,
+        usdPrice: new BigNumber(0.1)
+      }
+    ])
+    expect(bptTokenPrice).to.be.bignumber.equal(2)
+  })
+  it('USD Supply is 0', () => {
+    let bptTokenPrice = calcBptTokenPrice(ZERO, [])
+    expect(bptTokenPrice).to.be.bignumber.equal(0)
+    bptTokenPrice = calcBptTokenPrice(ZERO, [
+      {
+        reserves: tokenReserves,
+        usdPrice: new BigNumber(0.1)
+      }
+    ])
+    expect(bptTokenPrice).to.be.bignumber.equal(0)
+  })
+  it('No tokens', () => {
+    let bptTokenPrice = calcBptTokenPrice(usdTokenSupply, [])
+    expect(bptTokenPrice).to.be.bignumber.equal(0)
+    bptTokenPrice = calcBptTokenPrice(usdTokenSupply)
+    expect(bptTokenPrice).to.be.bignumber.equal(0)
+  })
+})
+
+describe('calc Balance Token Spot Price', () => {
+  const sellingToken = {
+    weight: new BigNumber(0.5),
+    balance: new BigNumber(1000)
+  }
+  const buyingToken = {
+    weight: new BigNumber(0.5),
+    balance: new BigNumber(1000)
+  }
+  it('Equal token weight and balance', () => {
+    const spotPrice = calcBptTokenSpotPrice(sellingToken, buyingToken, ZERO)
+    expect(spotPrice).to.be.bignumber.equal(1)
+  })
+  it('Equal token weight differing balances', () => {
+    const cheaperSelling = {
+      ...sellingToken,
+      balance: new BigNumber(2000)
+    }
+    const cheaperBuying = {
+      ...buyingToken,
+      balance: new BigNumber(2000)
+    }
+    let spotPrice = calcBptTokenSpotPrice(cheaperSelling, buyingToken, ZERO)
+    expect(spotPrice).to.be.bignumber.equal(2)
+    spotPrice = calcBptTokenSpotPrice(sellingToken, cheaperBuying, ZERO)
+    expect(spotPrice).to.be.bignumber.equal(0.5)
+  })
+
+  it('Higher weighted selling', () => {
+    const weightedSelling = {
+      ...sellingToken,
+      weight: new BigNumber(0.8)
+    }
+    const weightedBuying = {
+      ...buyingToken,
+      weight: new BigNumber(0.2)
+    }
+    const spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying, ZERO)
+    expect(spotPrice).to.be.bignumber.equal(0.25)
+  })
+
+  it('Higher weighted buying', () => {
+    const weightedSelling = {
+      ...sellingToken,
+      weight: new BigNumber(0.2)
+    }
+    const weightedBuying = {
+      ...buyingToken,
+      weight: new BigNumber(0.8)
+    }
+    const spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying, ZERO)
+    expect(spotPrice).to.be.bignumber.equal(4)
+  })
+
+  it('Zeroed weights', () => {
+    const weightedSelling = {
+      ...sellingToken,
+      weight: ZERO,
+    }
+    const weightedBuying = {
+      ...buyingToken,
+      weight: ZERO
+    }
+    const spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying, ZERO)
+    expect(spotPrice).to.be.bignumber.equal(0)
+  })
+  it('Zeroed balances', () => {
+    const mock = jest.fn()
+    console.error = mock;
+
+    const weightedSelling = {
+      ...sellingToken,
+      balance: new BigNumber(0)
+    }
+    const weightedBuying = {
+      ...buyingToken,
+      balance: new BigNumber(0)
+    }
+    let spotPrice = calcBptTokenSpotPrice(weightedSelling, buyingToken, ZERO)
+    expect(spotPrice).to.be.bignumber.equal(0)
+    spotPrice = calcBptTokenSpotPrice(sellingToken, weightedBuying, ZERO)
+    expect(spotPrice).to.be.bignumber.equal(0)
+    spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying, ZERO)
+    expect(spotPrice).to.be.bignumber.equal(0)
+
+    expect(mock.mock.calls.length).to.equal(3)
+  })
+  it('Uneven weights', () => {
+    const weightedSelling = {
+      ...sellingToken,
+      weight: new BigNumber(0.1),
+    }
+    const weightedBuying = {
+      ...buyingToken,
+      weight: new BigNumber(0.1),
+    }
+    const spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying, ZERO)
+    expect(spotPrice).to.be.bignumber.equal(0)
+  })
+  it('With swapfee', () => {
+    const weightedSelling = {
+      ...sellingToken,
+      weight: new BigNumber(0.8),
+    }
+    const weightedBuying = {
+      ...buyingToken,
+      weight: new BigNumber(0.2),
+    }
+    let spotPrice = calcBptTokenSpotPrice(sellingToken, buyingToken, new BigNumber(0.1))
+    expect(spotPrice.toNumber()).to.be.bignumber.approximately(1.111, 0.001)
+    spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying, new BigNumber(0.1))
+    expect(spotPrice.toNumber()).to.be.bignumber.approximately(0.277, 0.001)
+  })
+})
+
+describe('calcAPY', () => {
+  it('100% APR', () => {
+    const apy = calcAPY(new BigNumber(1))
+    expect(apy.toNumber()).to.be.bignumber.approximately(1.692, 0.001)
+  })
+  it('200% APR', () => {
+    const apy = calcAPY(new BigNumber(2))
+    expect(apy.toNumber()).to.be.bignumber.approximately(6.117, 0.001)
+  })
+  it('0% APR', () => {
+    const apy = calcAPY(ZERO)
+    expect(apy.toNumber()).to.be.bignumber.equal(0)
+  })
+})
+
+// IGNORING SINCE V2 WONT HAVE THIS
+// describe('calcMinimumCommit', () => {
+// })
