@@ -18,12 +18,12 @@ Since there is a yarn.lock, if you would like to use npm please run
 `yarn build:docs` or `npm run build:docs`
 `npx serve ./docs`
 
-## Entitites
+## Entities
 There are a number of entity classes relating to several of the contracts required to interact with pools.
 The entry should be [pools](./src/entities/pool.ts) but you can instantiate any of the classes individually.
 
 All entities follow the same design pattern of private constructors and public static `Create` functions.
-This is to ensure that the class is initialised before use. You will always have to wait for the `Create`
+This is to ensure that the class is initialized before use. You will always have to wait for the `Create`
 function before accessing the internals of the promise. There is also a `CreateDefault` this provides an
 interface for creating "empty" entities that can be used as default.
 
@@ -43,7 +43,7 @@ const someAsyncFunc = async () => {
 
 // option 2
 Pool.Create(poolAddress, provider).then((pool) => {
-	// pool initialised
+	// pool initialized
 	console.log(pool) // this log will be the same as above
 })
 ```

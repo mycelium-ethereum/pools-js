@@ -2,7 +2,7 @@
 <a href="#pools-js-sdk" id="pools-js-sdk" style="color: inherit; text-decoration: none;">
   <h1>Pools JS SDK</h1>
 </a>
-<p>A js development kit with supported typescript typings.</p>
+<p>A JS development kit with supported TypeScript typings.</p>
 
 <a href="#installation" id="installation" style="color: inherit; text-decoration: none;">
   <h2>Installation</h2>
@@ -18,20 +18,20 @@
 <code>yarn build</code> or <code>npm run build</code>
 <code>yarn test</code> or <code>npm run test</code></p>
 
-<a href="#documentaion" id="documentaion" style="color: inherit; text-decoration: none;">
-  <h2>Documentaion</h2>
+<a href="#documentation" id="documentation" style="color: inherit; text-decoration: none;">
+  <h2>Documentation</h2>
 </a>
 <p><code>yarn</code> or <code>npm run install</code>
 <code>yarn build:docs</code> or <code>npm run build:docs</code>
 <code>npx serve ./docs</code></p>
 
-<a href="#entitites" id="entitites" style="color: inherit; text-decoration: none;">
-  <h2>Entitites</h2>
+<a href="#entities" id="entities" style="color: inherit; text-decoration: none;">
+  <h2>Entities</h2>
 </a>
 <p>There are a number of entity classes relating to several of the contracts required to interact with pools.
 The entry should be <a href="./src/entities/pool.ts">pools</a> but you can instantiate any of the classes individually.</p>
 <p>All entities follow the same design pattern of private constructors and public static <code>Create</code> functions.
-This is to ensure that the class is initialised before use. You will always have to wait for the <code>Create</code>
+This is to ensure that the class is initialized before use. You will always have to wait for the <code>Create</code>
 function before accessing the internals of the promise. There is also a <code>CreateDefault</code> this provides an
 interface for creating &quot;empty&quot; entities that can be used as default.</p>
 
@@ -39,7 +39,7 @@ interface for creating &quot;empty&quot; entities that can be used as default.</
   <h3>Pools</h3>
 </a>
 <p>The main class for interacting with LeveragedPools. To get started its as simple as</p>
-<pre><code class="language-javascript"><span class="hl-0">import</span><span class="hl-1"> { </span><span class="hl-2">Pool</span><span class="hl-1"> } </span><span class="hl-0">from</span><span class="hl-1"> </span><span class="hl-3">&#39;@tracer-protocol/pools-js&#39;</span><br/><br/><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-5">provider</span><span class="hl-1"> = </span><span class="hl-4">new</span><span class="hl-1"> </span><span class="hl-2">ethers</span><span class="hl-1">.</span><span class="hl-2">providers</span><span class="hl-1">.</span><span class="hl-6">JsonRpcProvider</span><span class="hl-1">(</span><span class="hl-5">RPC_URL</span><span class="hl-1">);</span><br/><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-5">poolAddress</span><span class="hl-1"> = </span><span class="hl-3">&quot;0xPoolAddress&quot;</span><br/><br/><span class="hl-7">// option 1</span><br/><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-6">someAsyncFunc</span><span class="hl-1"> = </span><span class="hl-4">async</span><span class="hl-1"> () </span><span class="hl-4">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-5">pool</span><span class="hl-1"> = </span><span class="hl-0">await</span><span class="hl-1"> </span><span class="hl-2">Pool</span><span class="hl-1">.</span><span class="hl-6">Create</span><span class="hl-1">(</span><span class="hl-2">poolAddress</span><span class="hl-1">, </span><span class="hl-2">provider</span><span class="hl-1">);</span><br/><span class="hl-1">    </span><span class="hl-2">console</span><span class="hl-1">.</span><span class="hl-6">log</span><span class="hl-1">(</span><span class="hl-2">pool</span><span class="hl-1">)</span><br/><span class="hl-1">}</span><br/><br/><span class="hl-7">// option 2</span><br/><span class="hl-2">Pool</span><span class="hl-1">.</span><span class="hl-6">Create</span><span class="hl-1">(</span><span class="hl-2">poolAddress</span><span class="hl-1">, </span><span class="hl-2">provider</span><span class="hl-1">).</span><span class="hl-6">then</span><span class="hl-1">((</span><span class="hl-2">pool</span><span class="hl-1">) </span><span class="hl-4">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-7">// pool initialised</span><br/><span class="hl-1">    </span><span class="hl-2">console</span><span class="hl-1">.</span><span class="hl-6">log</span><span class="hl-1">(</span><span class="hl-2">pool</span><span class="hl-1">) </span><span class="hl-7">// this log will be the same as above</span><br/><span class="hl-1">})</span>
+<pre><code class="language-javascript"><span class="hl-0">import</span><span class="hl-1"> { </span><span class="hl-2">Pool</span><span class="hl-1"> } </span><span class="hl-0">from</span><span class="hl-1"> </span><span class="hl-3">&#39;@tracer-protocol/pools-js&#39;</span><br/><br/><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-5">provider</span><span class="hl-1"> = </span><span class="hl-4">new</span><span class="hl-1"> </span><span class="hl-2">ethers</span><span class="hl-1">.</span><span class="hl-2">providers</span><span class="hl-1">.</span><span class="hl-6">JsonRpcProvider</span><span class="hl-1">(</span><span class="hl-5">RPC_URL</span><span class="hl-1">);</span><br/><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-5">poolAddress</span><span class="hl-1"> = </span><span class="hl-3">&quot;0xPoolAddress&quot;</span><br/><br/><span class="hl-7">// option 1</span><br/><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-6">someAsyncFunc</span><span class="hl-1"> = </span><span class="hl-4">async</span><span class="hl-1"> () </span><span class="hl-4">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-5">pool</span><span class="hl-1"> = </span><span class="hl-0">await</span><span class="hl-1"> </span><span class="hl-2">Pool</span><span class="hl-1">.</span><span class="hl-6">Create</span><span class="hl-1">(</span><span class="hl-2">poolAddress</span><span class="hl-1">, </span><span class="hl-2">provider</span><span class="hl-1">);</span><br/><span class="hl-1">    </span><span class="hl-2">console</span><span class="hl-1">.</span><span class="hl-6">log</span><span class="hl-1">(</span><span class="hl-2">pool</span><span class="hl-1">)</span><br/><span class="hl-1">}</span><br/><br/><span class="hl-7">// option 2</span><br/><span class="hl-2">Pool</span><span class="hl-1">.</span><span class="hl-6">Create</span><span class="hl-1">(</span><span class="hl-2">poolAddress</span><span class="hl-1">, </span><span class="hl-2">provider</span><span class="hl-1">).</span><span class="hl-6">then</span><span class="hl-1">((</span><span class="hl-2">pool</span><span class="hl-1">) </span><span class="hl-4">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-7">// pool initialized</span><br/><span class="hl-1">    </span><span class="hl-2">console</span><span class="hl-1">.</span><span class="hl-6">log</span><span class="hl-1">(</span><span class="hl-2">pool</span><span class="hl-1">) </span><span class="hl-7">// this log will be the same as above</span><br/><span class="hl-1">})</span>
 </code></pre>
 <p>Once the pool is initialised you can use any of the functions listed within the docs.</p>
 
