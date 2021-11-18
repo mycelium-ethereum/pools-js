@@ -56,7 +56,7 @@ or it is automatically done when creating a pool. The two pool tokens
 (`pool.longToken` and `pool.shortToken`) implement the same methods as `pool.quoteToken`, so any
 functions used below can also be called on `pool.quoteToken`.
 
-```
+```javascript
 import { Pool, SideEnum } from '@tracer-protocol/pools-js'
 
 const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
