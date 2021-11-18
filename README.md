@@ -1,5 +1,5 @@
 # Pools JS SDK
-A js development kit with supported typescript typings.
+A JS development kit with supported TypeScript typings.
 
 ## Installation
 
@@ -13,7 +13,7 @@ Since there is a yarn.lock, if you would like to use npm please run
 `yarn build` or `npm run build`
 `yarn test` or `npm run test`
 
-## Documentaion
+## Documentation
 `yarn` or `npm run install`
 `yarn build:docs` or `npm run build:docs`
 `npx serve ./docs`
