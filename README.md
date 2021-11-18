@@ -29,7 +29,7 @@ interface for creating "empty" entities that can be used as default.
 
 ### Pools
 The main class for interacting with LeveragedPools. To get started its as simple as
-```
+```javascript
 import { Pool } from '@tracer-protocol/pools-js'
 
 const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
