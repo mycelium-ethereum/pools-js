@@ -1,5 +1,5 @@
 import { StaticTokenInfo, KnownNetwork } from '../types';
-import { NETWORKS } from './constants';
+import { NETWORKS } from '../utils';
 const { ARBITRUM, ARBITRUM_RINKEBY, MAINNET, RINKEBY, KOVAN } = NETWORKS
 
 const tokenList: Record<KnownNetwork, StaticTokenInfo[]> = {
