@@ -1,16 +1,16 @@
-import { StaticPoolInfo, StaticTokenInfo, KnownNetwork } from '../types';
-import BigNumber from 'bignumber.js';
+import { StaticTokenInfo, KnownNetwork } from '../types';
+import { StaticPoolInfo } from '..';
 import {
   NETWORKS,
   USDC_DECIMALS,
   TEST_TOKEN_DECIMALS
-} from './constants';
+} from '../utils';
 const { ARBITRUM, ARBITRUM_RINKEBY, MAINNET, RINKEBY, KOVAN } = NETWORKS
 import { tokenMap } from './tokenList';
 
-const ONE_HOUR = new BigNumber(3600); // seconds
-const FIVE_MINUTES = new BigNumber(300); // seconds
-const THIRTY_SECONDS = new BigNumber(30); // seconds
+const ONE_HOUR =3600; // seconds
+const FIVE_MINUTES =300; // seconds
+const THIRTY_SECONDS =30; // seconds
 
 export const poolList: Record<KnownNetwork, StaticPoolInfo[]> = {
     [ARBITRUM]: [
@@ -260,12 +260,16 @@ export const poolTokenList: Record<KnownNetwork, Record<string, StaticTokenInfo>
         [key]: Object.assign(
             {},
             ...poolList[key as KnownNetwork].map((poolInfo) => ({
-                [poolInfo.shortToken.address]: {
-                    ...poolInfo.shortToken,
-                },
-                [poolInfo.longToken.address]: {
-                    ...poolInfo.longToken,
-                },
+                ...(poolInfo.shortToken ? {
+                    [poolInfo.shortToken.address]: {
+                        ...(poolInfo.shortToken || {}),
+                    },
+                } : {}),
+                ...(poolInfo.longToken ? {
+                    [poolInfo.longToken.address]: {
+                        ...(poolInfo.longToken || {}),
+                    },
+                } : {}),
             })),
         ),
     })),

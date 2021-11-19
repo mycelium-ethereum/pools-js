@@ -1,6 +1,6 @@
 import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
-import { NETWORKS } from '../data/constants';
+import { NETWORKS } from '../utils';
 
 /**
  * Holds burn and mint pending amounts
@@ -29,24 +29,6 @@ export type StaticTokenInfo = {
 	symbol: string;
 	decimals: number;
 }
-
-/**
- * Known details of a tracer perpetual pool
- */
-export type StaticPoolInfo = {
-	address: string;
-	name: string;
-	updateInterval: BigNumber;
-	frontRunningInterval: BigNumber;
-	leverage: number;
-	keeper: string;
-	committer: {
-			address: string;
-	};
-	shortToken: StaticTokenInfo;
-	longToken: StaticTokenInfo;
-	quoteToken: StaticTokenInfo;
-};
 
 type KnownNetworkKeys = keyof typeof NETWORKS;
 export type KnownNetwork = typeof NETWORKS[KnownNetworkKeys];
