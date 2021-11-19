@@ -286,10 +286,6 @@ export const calcBptTokenSpotPrice: (
     swapFee: BigNumber
 ) => BigNumber = (sellingToken, buyingToken, swapFee) => {
     if (sellingToken.weight.eq(0) || buyingToken.weight.eq(0)) return new BigNumber(0)
-    if (!(sellingToken.weight.plus(buyingToken.weight).eq(1))) {
-        console.error("Token weights do not add to 1")
-        return new BigNumber(0)
-    }
     if (sellingToken.balance.eq(0) || buyingToken.balance.eq(0)) {
         console.error("Selling token balance zero")
         return new BigNumber(0)

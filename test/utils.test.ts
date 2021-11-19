@@ -414,18 +414,6 @@ describe('calc Balance Token Spot Price', () => {
 
     expect(mock.mock.calls.length).to.equal(3)
   })
-  it('Uneven weights', () => {
-    const weightedSelling = {
-      ...sellingToken,
-      weight: new BigNumber(0.1),
-    }
-    const weightedBuying = {
-      ...buyingToken,
-      weight: new BigNumber(0.1),
-    }
-    const spotPrice = calcBptTokenSpotPrice(weightedSelling, weightedBuying, ZERO)
-    expect(spotPrice).to.be.bignumber.equal(0)
-  })
   it('With swapfee', () => {
     const weightedSelling = {
       ...sellingToken,

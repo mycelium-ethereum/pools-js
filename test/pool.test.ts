@@ -89,18 +89,18 @@ const createPool = async (address: string, config?: TestConfig) => (
 		? Pool.Create({
 			...config,
 			address: address,
-			rpcURL: 'https://arb1.arbitrum.io/rpc',
+			provider: new ethers.providers.JsonRpcProvider('https://arb1.arbitrum.io/rpc')
 		})
 		: Pool.Create({
 			address: address,
-			rpcURL: 'https://arb1.arbitrum.io/rpc'
+			provider: new ethers.providers.JsonRpcProvider('https://arb1.arbitrum.io/rpc')
 		})
 )
 
 
 const assertPool: (pool: Pool) => void = (pool) => {
 	expect(pool.name).toEqual(poolConfig.name)
-	expect(pool.poolInstance.address).toEqual(poolConfig.address)
+	expect(pool.address).toEqual(poolConfig.address)
 	expect(pool.keeper).toEqual(poolConfig.keeper);
 	expect(pool.frontRunningInterval.toNumber()).toEqual(poolConfig.frontRunningInterval)
 	expect(pool.updateInterval.toNumber()).toEqual(poolConfig.updateInterval)
