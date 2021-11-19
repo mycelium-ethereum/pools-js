@@ -1,13 +1,14 @@
 import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
+import { NETWORKS } from '../data/constants';
 
 /**
  * Holds burn and mint pending amounts
- * PendingAmounts.mint is the amount of quote token pending in the shadow pools 
- * PendingAmounts.burn is the amount of to be burned pool tokens in the shadow pools 
+ * PendingAmounts.mint is the amount of quote token pending in the shadow pools
+ * PendingAmounts.burn is the amount of to be burned pool tokens in the shadow pools
  */
 export type PendingAmounts = {
-    mint: BigNumber; 
+    mint: BigNumber;
     burn: BigNumber;
 };
 
@@ -28,3 +29,24 @@ export type StaticTokenInfo = {
 	symbol: string;
 	decimals: number;
 }
+
+/**
+ * Known details of a tracer perpetual pool
+ */
+export type StaticPoolInfo = {
+	address: string;
+	name: string;
+	updateInterval: BigNumber;
+	frontRunningInterval: BigNumber;
+	leverage: number;
+	keeper: string;
+	committer: {
+			address: string;
+	};
+	shortToken: StaticTokenInfo;
+	longToken: StaticTokenInfo;
+	quoteToken: StaticTokenInfo;
+};
+
+type KnownNetworkKeys = keyof typeof NETWORKS;
+export type KnownNetwork = typeof NETWORKS[KnownNetworkKeys];
