@@ -8,9 +8,9 @@ import {
 const { ARBITRUM, ARBITRUM_RINKEBY, MAINNET, RINKEBY, KOVAN } = NETWORKS
 import { tokenMap } from './tokenList';
 
-const ONE_HOUR =3600; // seconds
-const FIVE_MINUTES =300; // seconds
-const THIRTY_SECONDS =30; // seconds
+const ONE_HOUR=3600; // seconds
+const FIVE_MINUTES=300; // seconds
+const THIRTY_SECONDS=30; // seconds
 
 export const poolList: Record<KnownNetwork, StaticPoolInfo[]> = {
     [ARBITRUM]: [
