@@ -144,4 +144,13 @@ export default class PoolToken {
 		}
 		return this._contract.connect(signer).approve(spender, ethers.utils.formatUnits(amount.toString(), this.decimals));
 	}
+
+	/**
+	 * Replaces the provider and connects the contract instance
+	 * @param provider The new provider to connect to
+	 */
+	public connect: (provider: ethers.providers.JsonRpcProvider) => void = async (provider) => {
+		this.provider = provider;
+		this._contract = this._contract?.connect(provider);
+	}
 }

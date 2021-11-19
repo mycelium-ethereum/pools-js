@@ -397,6 +397,20 @@ export default class Pool {
 	}
 
 	/**
+	 * Replaces the provider and connects the contract instance, also connects the
+	 * 	quoteToken, short and long tokens and Committer instance
+	 * @param provider The new provider to connect to
+	 */
+	public connect: (provider: ethers.providers.JsonRpcProvider) => void = async (provider) => {
+		this.provider = provider;
+		this._contract = this._contract?.connect(provider);
+		this.committer.connect(provider);
+		this.longToken.connect(provider);
+		this.shortToken.connect(provider);
+		this.quoteToken.connect(provider);
+	}
+
+	/**
 	 * Sets the pools long balance
 	 * @param longBalance balance to set
 	 */
