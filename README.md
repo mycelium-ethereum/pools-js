@@ -27,24 +27,35 @@ This is to ensure that the class is initialized before use. You will always have
 function before accessing the internals of the promise. There is also a `CreateDefault` this provides an
 interface for creating "empty" entities that can be used as default.
 
+(A list of Pools related addresses can be found [here](https://tracerdao.notion.site/Tracer-Contract-Addresses-8dbf351d1a034be79f7a5c278775084d)
+
 ### Pools
 The main class for interacting with LeveragedPools. To get started its as simple as
 ```javascript
-import { Pool } from '@tracer-protocol/pools-js'
+import { Pool } from '@tracer-protocol/pools-js';
+import ethers from 'ethers';
 
-const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
-const poolAddress = "0xPoolAddress"
+const provider = new ethers.providers.JsonRpcProvider("https://arb1.arbitrum.io/rpc");
+
+// 3-ETH/USD
+const poolAddress = "0x54114e9e1eEf979070091186D7102805819e916B";
 
 // option 1
-const someAsyncFunc = async () => {
-	const pool = await Pool.Create(poolAddress, provider);
-	console.log(pool)
-}
+(async () => {
+	const pool = await Pool.Create({
+		address: poolAddress, 
+		provider
+	});
+	console.log("First example long price", pool.getLongTokenPrice().toNumber());
+})()
 
 // option 2
-Pool.Create(poolAddress, provider).then((pool) => {
+Pool.Create({
+	address: poolAddress, 
+	provider
+}).then((pool) => {
 	// pool initialized
-	console.log(pool) // this log will be the same as above
+	console.log("Second example long price", pool.getLongTokenPrice().toNumber()); // this log will be the same as above
 })
 ```
 
@@ -57,26 +68,28 @@ or it is automatically done when creating a pool. The two pool tokens
 functions used below can also be called on `pool.quoteToken`.
 
 ```javascript
-import { Pool, SideEnum } from '@tracer-protocol/pools-js'
+import { Pool, SideEnum } from '@tracer-protocol/pools-js';
+import ethers from 'ethers';
+const provider = new ethers.providers.JsonRpcProvider("https://arb1.arbitrum.io/rpc");
 
-const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
-const poolAddress = "0xPoolAddress"
+// 3-ETH/USD
+const poolAddress = "0x54114e9e1eEf979070091186D7102805819e916B";
 
-const someAsyncFunc = async () => {
+(async () => {
 	const pool = await Pool.Create({
 		address: poolAddress, 
 		provider
 	});
 
 	let token = pool.longToken;
-	const balance = await token.fetchBalance("0xSomeAddress")
+	console.log("First example token name", token.name)
 
 	// or if you know the token contract
 	token = await PoolToken.Create({
-		address: "0xLongTokenAddress", 
+		address: pool.longToken.address, 
 		provider,
 		side: SideEnum.long
 	})
-	const balance = await token.fetchBalance("0xSomeAddress")
-}
+	console.log("Second example token name", token.name)
+})()
 ```
