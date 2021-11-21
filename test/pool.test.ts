@@ -85,7 +85,7 @@ const poolConfig: TestConfig = {
 
 
 const createPool = async (address: string, config?: TestConfig) => (
-	config	
+	config
 		? Pool.Create({
 			...config,
 			address: address,
@@ -200,7 +200,7 @@ describe('Calculating token prices', () => {
 				const { shortValueTransfer, longValueTransfer } = pool.getNextValueTransfer();
 				expect(parseFloat(shortValueTransfer.toFixed(2))).toEqual(-24.87)
 				expect(parseFloat(longValueTransfer.toFixed(2))).toEqual(24.87)
-				
+
 				expect(pool.getLongTokenPrice().toNumber()).toEqual(0.2)
 				expect(pool.getShortTokenPrice().toNumber()).toEqual(0.1)
 				expect(parseFloat(pool.getNextLongTokenPrice().toFixed(2))).toEqual(0.22)
@@ -221,7 +221,7 @@ describe('Calculating token prices', () => {
 			pendingShort: {
 				burn: 100
 			}, pendingLong: {
-				burn: 100 
+				burn: 100
 			}
 		}))
 		// @ts-ignore
@@ -235,7 +235,7 @@ describe('Calculating token prices', () => {
 				const { shortValueTransfer, longValueTransfer } = pool.getNextValueTransfer();
 				expect(parseFloat(shortValueTransfer.toFixed(2))).toEqual(-24.87)
 				expect(parseFloat(longValueTransfer.toFixed(2))).toEqual(24.87)
-				
+
 				expect(pool.getLongTokenPrice().toNumber()).toEqual(0.2)
 				expect(pool.getShortTokenPrice().toNumber()).toEqual(0.1)
 				expect(parseFloat(pool.getNextLongTokenPrice().toFixed(2))).toEqual(0.22)
