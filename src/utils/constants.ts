@@ -4,7 +4,7 @@ export const NETWORKS = {
   MAINNET: '1',
   RINKEBY: '4',
   KOVAN: '42'
-} as const
+} as const;
 
 export const TCR_DECIMALS = 18;
 export const TEST_TOKEN_DECIMALS = 18;

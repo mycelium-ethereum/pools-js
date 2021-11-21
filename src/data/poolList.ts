@@ -239,7 +239,7 @@ export const poolList: Record<KnownNetwork, StaticPoolInfo[]> = {
 };
 
 // construct pool map so it is easier to access specific pools
-export const poolMap = Object.assign(
+export const poolMap: Record<KnownNetwork, Record<string, StaticPoolInfo>> = Object.assign(
     {},
     ...Object.keys(poolList).map((key) => ({
         [key]: Object.assign(
