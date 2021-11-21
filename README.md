@@ -43,7 +43,7 @@ const poolAddress = "0x54114e9e1eEf979070091186D7102805819e916B";
 // option 1
 (async () => {
 	const pool = await Pool.Create({
-		address: poolAddress, 
+		address: poolAddress,
 		provider
 	});
 	console.log("First example long price", pool.getLongTokenPrice().toNumber());
@@ -51,7 +51,7 @@ const poolAddress = "0x54114e9e1eEf979070091186D7102805819e916B";
 
 // option 2
 Pool.Create({
-	address: poolAddress, 
+	address: poolAddress,
 	provider
 }).then((pool) => {
 	// pool initialized
@@ -77,7 +77,7 @@ const poolAddress = "0x54114e9e1eEf979070091186D7102805819e916B";
 
 (async () => {
 	const pool = await Pool.Create({
-		address: poolAddress, 
+		address: poolAddress,
 		provider
 	});
 
@@ -86,10 +86,22 @@ const poolAddress = "0x54114e9e1eEf979070091186D7102805819e916B";
 
 	// or if you know the token contract
 	token = await PoolToken.Create({
-		address: pool.longToken.address, 
+		address: pool.longToken.address,
 		provider,
 		side: SideEnum.long
 	})
 	console.log("Second example token name", token.name)
 })()
+```
+
+### Static Pool and Token Data
+This SDK provides a list of known addresses and details relating to perpetual pools.
+This static data can be imported like so:
+
+```javascript
+import { poolList, poolMap, tokenMap,  } from '@tracer-protocol/pools-js';
+
+// poolList is a mapping from network -> StaticPoolInfo[]
+// poolMap is a mapping from network -> poolAddress -> StaticPoolInfo
+// tokenMap is a mapping from network -> tokenSymbol -> StaticTokenInfo
 ```
