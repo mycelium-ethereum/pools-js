@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - master # Change this to your default branch
+  pull_request:
+    branches:
+      - master # Change this to your default branch
 jobs:
   npm-publish:
     name: npm-publish
@@ -15,7 +18,9 @@ jobs:
     - name: Run build 
       run: yarn build
     - name: Move package.json
-      uses: jq -c 'delpaths([["scripts"], ["devDependencies"]])' package.json >> ./dist/package.json 
+      uses: sergeysova/jq-action@v2
+        with:
+          cmd: jq -c 'delpaths([["scripts"], ["devDependencies"]])' package.json >> ./dist/package.json 
     - name: Publish if version has been updated
       uses: pascalgn/npm-publish-action@1.3.8
       with: # All of theses inputs are optional
