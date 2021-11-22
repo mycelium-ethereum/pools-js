@@ -14,7 +14,7 @@ export interface IPoolCommitter extends IContract {
 	minimumCommitSize?: number;
 }
 
-const defaults = {
+export const defaultCommitter = {
 	pendingLong: {
 		mint: new BigNumber(0),
 		burn: new BigNumber(0),
@@ -25,7 +25,7 @@ const defaults = {
 	},
 	quoteTokenDecimals: 18,
 	minimumCommitSize: new BigNumber(0)
-}
+} as const
 
 /**
  * Interface for interacting with the PoolComitter.
@@ -46,10 +46,14 @@ export default class Committer {
 		// these all need to be ovverridden in the init function
 		this.address = '';
 		this.provider = new ethers.providers.JsonRpcProvider('');
-		this.pendingLong = defaults.pendingLong
-		this.pendingShort= defaults.pendingShort;
-		this.quoteTokenDecimals = defaults.quoteTokenDecimals;
-		this.minimumCommitSize = defaults.minimumCommitSize
+		this.pendingLong = {
+			...defaultCommitter.pendingLong
+		} 
+		this.pendingShort= {
+			...defaultCommitter.pendingShort
+		}
+		this.quoteTokenDecimals = defaultCommitter.quoteTokenDecimals;
+		this.minimumCommitSize = defaultCommitter.minimumCommitSize
 	}
 
 	/**

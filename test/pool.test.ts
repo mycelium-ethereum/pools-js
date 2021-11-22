@@ -83,7 +83,6 @@ const poolConfig: TestConfig = {
 	oraclePrice: utils.parseEther(expected.oraclePrice.toString()),
 }
 
-
 const createPool = async (address: string, config?: TestConfig) => (
 	config
 		? Pool.Create({
@@ -161,6 +160,17 @@ describe('Testing pool constructor', () => {
 			))
 		)
 	});
+	it('Creating default', () => {
+		const pool = Pool.CreateDefault();
+		expect(pool.address).toEqual('')
+		expect(pool.name).toEqual('')
+		expect(pool.keeper).toEqual('')
+		expect(pool.updateInterval.toNumber()).toEqual(0)
+		expect(pool.lastUpdate.toNumber()).toEqual(0)
+		expect(pool.lastPrice.toNumber()).toEqual(0)
+		expect(pool.shortBalance.toNumber()).toEqual(0)
+		expect(pool.longBalance.toNumber()).toEqual(0)
+	})
 });
 
 describe('Calculating token prices', () => {

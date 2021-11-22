@@ -6,25 +6,32 @@ ethers.utils = utils;
 
 import PoolToken from '../src/entities/poolToken';
 import Token from '../src/entities/token';
-import { StaticTokenInfo } from '../src/types';
+import { SideEnum, StaticTokenInfo } from '../src/types';
 
-const expected = {
-	tokenSupply: 1000
-}
-
-const tokenInfo: StaticTokenInfo = {
+const expectedTokenInfo = {
+	tokenSupply: 1000,
+	pool: '0xPoolAddress',
 	address: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
 	name: 'Test Token',
 	symbol: 'TEST',
-	decimals: 18
+	decimals: 18,
+	side: SideEnum.short
+}
+
+const expectedDefault = {
+	tokenSupply: 0,
+	pool: '',
+	address: '',
+	name: '',
+	symbol: '',
+	decimals: 18,
+	side: SideEnum.long
 }
 
 const poolTokenInfo = {
-	...tokenInfo,
-	supply: ethers.utils.parseEther(expected.tokenSupply.toString()),
-	pool: '0xPoolAddress'
+	...expectedTokenInfo,
+	supply: ethers.utils.parseEther(expectedTokenInfo.tokenSupply.toString()),
 }
-
 
 const provider = new ethers.providers.JsonRpcProvider('https://arb1.arbitrum.io/rpc');
 
@@ -34,14 +41,16 @@ const createToken: (poolToken?: boolean, config?: StaticTokenInfo) => Promise<Po
 			config	
 				? PoolToken.Create({
 					...config,
-					address: tokenInfo.address,
+					address: expectedTokenInfo.address,
 					provider: provider,
-					pool: poolTokenInfo?.pool
+					pool: poolTokenInfo?.pool,
+					side: poolTokenInfo.side
 				})
 				: PoolToken.Create({
-					address: tokenInfo.address,
+					address: expectedTokenInfo.address,
 					provider: provider,
-					pool: poolTokenInfo?.pool
+					pool: poolTokenInfo?.pool,
+					side: poolTokenInfo.side
 				})
 		)
 	} else {
@@ -49,11 +58,11 @@ const createToken: (poolToken?: boolean, config?: StaticTokenInfo) => Promise<Po
 			config	
 				? Token.Create({
 					...config,
-					address: tokenInfo.address,
+					address: expectedTokenInfo.address,
 					provider: provider,
 				})
 				: Token.Create({
-					address: tokenInfo.address,
+					address: expectedTokenInfo.address,
 					provider: provider,
 				})
 		)
@@ -62,23 +71,28 @@ const createToken: (poolToken?: boolean, config?: StaticTokenInfo) => Promise<Po
 }
 
 
-const assertToken: (token: Token | PoolToken) => void = (token) => {
-	expect(token.name).toEqual(tokenInfo.name)
-	expect(token.address).toEqual(tokenInfo.address)
-	expect(token.symbol).toEqual(tokenInfo.symbol)
-	expect(token.decimals).toEqual(tokenInfo.decimals)
+const assertToken: (token: Token | PoolToken, expectedTokenInfo: StaticTokenInfo) => void = (token, expectedTokenInfo) => {
+	expect(token.name).toEqual(expectedTokenInfo.name)
+	expect(token.address).toEqual(expectedTokenInfo.address)
+	expect(token.symbol).toEqual(expectedTokenInfo.symbol)
+	expect(token.decimals).toEqual(expectedTokenInfo.decimals)
 }
 
-const assertPoolToken: (token: PoolToken) => void = (token) => {
-	expect(token.supply.toNumber()).toEqual(expected.tokenSupply)
+const assertPoolToken: (token: PoolToken, poolTokenInfo: {
+	tokenSupply: number,
+	pool: string,
+	side: SideEnum
+}) => void = (token, poolTokenInfo) => {
+	expect(token.supply.toNumber()).toEqual(poolTokenInfo.tokenSupply)
 	expect(token.pool).toEqual(poolTokenInfo.pool)
+	expect(token.side).toEqual(poolTokenInfo.side)
 }
 
 const mockToken = {
 	// token functions
-	name: () => tokenInfo.name,
-	symbol: () => tokenInfo.symbol,
-	decimals: () => tokenInfo.decimals,
+	name: () => expectedTokenInfo.name,
+	symbol: () => expectedTokenInfo.symbol,
+	decimals: () => expectedTokenInfo.decimals,
 }
 
 const mockPoolToken = {
@@ -95,15 +109,23 @@ describe('Testing token constructor', () => {
 
 	it('No input', () => {
 		return createToken().then((token) => (
-			assertToken(token)
+			assertToken(token, expectedTokenInfo)
 		))
 	});
 	it('Full input', async () => {
 		return (
-			createToken(false, tokenInfo).then((token) => (
-				assertToken(token)
+			createToken(false, expectedTokenInfo).then((token) => (
+				assertToken(token, expectedTokenInfo)
 			))
 		)
+	});
+
+	it('Creating default', async () => {
+		const token = Token.CreateDefault();
+		const poolToken = PoolToken.CreateDefault();
+		assertToken(token, expectedDefault)
+		assertToken(poolToken, expectedDefault)
+		assertPoolToken(poolToken, expectedDefault)
 	});
 });
 
@@ -115,15 +137,15 @@ describe('Testing pool token constructor', () => {
 
 	it('No input', () => {
 		return createToken(true).then((token) => {
-			assertToken(token)
-			assertPoolToken(token as PoolToken)
+			assertToken(token, expectedTokenInfo)
+			assertPoolToken(token as PoolToken, expectedTokenInfo)
 		})
 	});
 	it('Full input', async () => {
 		return (
-			createToken(true, tokenInfo).then((token) => {
-				assertToken(token)
-				assertPoolToken(token as PoolToken)
+			createToken(true, expectedTokenInfo).then((token) => {
+				assertToken(token, expectedTokenInfo)
+				assertPoolToken(token as PoolToken, expectedTokenInfo)
 			})
 		)
 	});

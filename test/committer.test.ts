@@ -107,6 +107,16 @@ describe('Testing committer constructor', () => {
 			))
 		)
 	});
+	it('Creating default', () => {
+		const committer = Committer.CreateDefault();
+		expect(committer.address).toEqual('');
+		expect(committer.pendingLong.burn.toNumber()).toEqual(0);
+		expect(committer.pendingLong.mint.toNumber()).toEqual(0);
+		expect(committer.pendingShort.burn.toNumber()).toEqual(0);
+		expect(committer.pendingShort.mint.toNumber()).toEqual(0);
+		expect(committer.quoteTokenDecimals).toEqual(18);
+		expect(committer.minimumCommitSize.toNumber()).toEqual(0);
+	});
 });
 
 describe('Testing commit' ,() => {
