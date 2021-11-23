@@ -160,16 +160,29 @@ describe('Testing pool constructor', () => {
 			))
 		)
 	});
-	it('Creating default', () => {
+	it('Creating default', async () => {
 		const pool = Pool.CreateDefault();
 		expect(pool.address).toEqual('')
 		expect(pool.name).toEqual('')
 		expect(pool.keeper).toEqual('')
-		expect(pool.updateInterval.toNumber()).toEqual(0)
-		expect(pool.lastUpdate.toNumber()).toEqual(0)
-		expect(pool.lastPrice.toNumber()).toEqual(0)
-		expect(pool.shortBalance.toNumber()).toEqual(0)
-		expect(pool.longBalance.toNumber()).toEqual(0)
+		expect(pool.updateInterval.toNumber()).toEqual(0);
+		expect(pool.lastUpdate.toNumber()).toEqual(0);
+		expect(pool.lastPrice.toNumber()).toEqual(0);
+		expect(pool.shortBalance.toNumber()).toEqual(0);
+		expect(pool.longBalance.toNumber()).toEqual(0);
+		await expect(async () => pool.fetchPoolBalances())
+			.rejects
+			.toThrow('Failed to update pool balances: this._contract undefined')
+		await expect(async () => pool.fetchOraclePrice())
+			.rejects
+			.toThrow('Failed to fetch the pools oracle price: this._contract undefined')
+		await expect(async () => pool.fetchLastPrice())
+			.rejects
+			.toThrow('Failed to fetch pools last price: this._keeper undefined')
+		await expect(async () => pool.fetchLastPriceTimestamp())
+			.rejects
+			.toThrow('Failed to fetch pools last price timestamp: this._contract undefined')
+		expect(() => pool.connect(null)).toThrow('Failed to connect LeveragedPool: provider cannot be undefined')
 	})
 });
 
@@ -252,5 +265,80 @@ describe('Calculating token prices', () => {
 				expect(parseFloat(pool.getNextShortTokenPrice().toFixed(2))).toEqual(0.08)
 			})
 		)
+	})
+})
+
+describe('Calculating getNextPoolState', () => {
+	beforeEach(() => {
+		// @ts-ignore
+		Committer.Create.mockImplementation(() => ({
+			pendingLong: {
+				mint: new BigNumber(100),
+				burn: new BigNumber(50),
+			},
+			pendingShort: {
+				mint: new BigNumber(0),
+				burn: new BigNumber(0),
+			},
+		}))
+
+		// @ts-ignore
+		PoolToken.Create.mockImplementation(() => ({
+			supply: new BigNumber(1000),
+			...poolConfig.longToken
+		}))
+	})
+
+
+	it('Price goes up', async () => {
+		// @ts-ignore
+		ethers.Contract.mockImplementation(() => ({
+			...mockPool,
+			getOraclePrice: () => Promise.resolve(ethers.utils.parseEther('1.1')),
+		}))
+		const pool = await createPool(poolConfig.address);
+		const nextPoolState = pool.getNextPoolState();
+		// this is currentLongBalance +- valueTransfer + pendingMints - (pendingBurns * nextTokenPrice)
+		// 	where nextTokenPrice = (currentLongBalance +- valueTransfer) / (tokenSupply + pendingBurns)
+		// 	the additional + pendingBurns to tokenSupply is only because the tokenSupply gets reduced on burns
+		// 	but the nextTokenPrice is calculated as if the burn has not already occurred
+		// The supply for the longToken will be 1050 since the mocks have the supply set to 1000
+		// 	as well as a pendingBurn amount of 50. This is because if it was actually fetching the supply
+		// 	from the contracts, the supply would be 950 if a burn of amount 50 occurred when
+		//	the token supply was at 1000
+		expect(parseFloat(nextPoolState.expectedLongBalance.toFixed(3))).toEqual(314.16)
+		expect(parseFloat(nextPoolState.newLongTokenPrice.toFixed(3))).toEqual(0.214)
+
+		// this is the same calc except there is no pending commits so it should just be
+		// shortBalance +- valueTransfer
+		expect(parseFloat(nextPoolState.expectedShortBalance.toFixed(3))).toEqual(75.131)
+		expect(parseFloat(nextPoolState.newShortTokenPrice.toFixed(2))).toEqual(0.08)
+
+		// this is very high
+		expect(parseFloat(nextPoolState.expectedSkew.toFixed(3))).toEqual(4.181)
+	})
+	it('Price goes down', async () => {
+		// @ts-ignore
+		ethers.Contract.mockImplementation(() => ({
+			...mockPool,
+			getOraclePrice: () => Promise.resolve(ethers.utils.parseEther('0.9')),
+		}))
+		const pool = await createPool(poolConfig.address);
+		const nextPoolState = pool.getNextPoolState();
+		expect(parseFloat(nextPoolState.valueTransfer.longValueTransfer.toFixed(3))).toEqual(-54.2)
+		expect(parseFloat(nextPoolState.valueTransfer.shortValueTransfer.toFixed(3))).toEqual(54.2)
+
+		// this time the value transfer goes to the shorts
+		// since there is already a large skew, the shorts will see a greater gain
+		// 	than 3x
+		// the value transfer in this case is around $54
+		expect(parseFloat(nextPoolState.expectedLongBalance.toFixed(3))).toEqual(238.857)
+		expect(parseFloat(nextPoolState.newLongTokenPrice.toFixed(4))).toEqual(0.1389)
+
+		expect(parseFloat(nextPoolState.expectedShortBalance.toFixed(3))).toEqual(154.2)
+		expect(parseFloat(nextPoolState.newShortTokenPrice.toFixed(2))).toEqual(0.15)
+
+		// this is very high
+		expect(parseFloat(nextPoolState.expectedSkew.toFixed(3))).toEqual(1.549)
 	})
 })

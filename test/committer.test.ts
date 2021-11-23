@@ -116,6 +116,7 @@ describe('Testing committer constructor', () => {
 		expect(committer.pendingShort.mint.toNumber()).toEqual(0);
 		expect(committer.quoteTokenDecimals).toEqual(18);
 		expect(committer.minimumCommitSize.toNumber()).toEqual(0);
+		expect(() => committer.connect(null)).toThrow('Failed to connect Committer: provider cannot be undefined')
 	});
 });
 
