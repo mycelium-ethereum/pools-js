@@ -167,10 +167,10 @@ export default class Committer {
 		if (!this._contract) throw Error("Failed to update pending amounts: this._contract undefined")
 
 		const [
-			longMints,
 			longBurns,
-			shortMints,
-			shortBurns
+			longMints,
+			shortBurns,
+			shortMints
 		] = await Promise.all([
 			this.fetchShadowPool(CommitEnum.longBurn),
 			this.fetchShadowPool(CommitEnum.longMint),

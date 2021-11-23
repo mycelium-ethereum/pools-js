@@ -99,6 +99,28 @@ const mockPoolToken = {
 	...mockToken,
 	totalSupply: () => poolTokenInfo.supply
 }
+const testAsyncFunctions = async (token: Token | PoolToken) => {
+	await expect(async () => token.fetchAllowance('0xSpender', '0xAccount'))
+		.rejects
+		.toThrow('Failed to fetch allowance: this._contract undefined')
+	await expect(async () => token.fetchBalance('0xAccount'))
+		.rejects
+		.toThrow('Failed to fetch balance: this._contract undefined')
+	await expect(async () => token.approve('0xAccount', 500))
+		.rejects
+		.toThrow('Failed to approve token: this._contract undefined')
+	// @ts-expect-error Need to make contract not falsey
+	token._contract = {}
+	await expect(async () => token.fetchAllowance('0xSpender', '0xAccount'))
+		.rejects
+		.toThrow('Failed to fetch allowance: signer undefined')
+	await expect(async () => token.fetchBalance('0xAccount'))
+		.rejects
+		.toThrow('Failed to fetch balance: signer undefined')
+	await expect(async () => token.approve('0xAccount', 500))
+		.rejects
+		.toThrow('Failed to approve token: signer undefined')
+}
 
 
 describe('Testing token constructor', () => {
@@ -122,38 +144,9 @@ describe('Testing token constructor', () => {
 
 	it('Creating default', async () => {
 		const token = Token.CreateDefault();
-		const poolToken = PoolToken.CreateDefault();
 		assertToken(token, expectedDefault)
-		assertToken(poolToken, expectedDefault)
-		assertPoolToken(poolToken, expectedDefault)
-		const testAsyncFunctions = async (token: Token | PoolToken) => {
-			await expect(async () => token.fetchAllowance('0xSpender', '0xAccount'))
-				.rejects
-				.toThrow('Failed to fetch allowance: this._contract undefined')
-			await expect(async () => token.fetchBalance('0xAccount'))
-				.rejects
-				.toThrow('Failed to fetch balance: this._contract undefined')
-			await expect(async () => token.approve('0xAccount', 500))
-				.rejects
-				.toThrow('Failed to approve token: this._contract undefined')
-			// @ts-expect-error Need to make contract not falsey
-			token._contract = {}
-			// @ts-expect-error Need to make contract not falsey
-			poolToken._contract = {}
-			await expect(async () => token.fetchAllowance('0xSpender', '0xAccount'))
-				.rejects
-				.toThrow('Failed to fetch allowance: signer undefined')
-			await expect(async () => token.fetchBalance('0xAccount'))
-				.rejects
-				.toThrow('Failed to fetch balance: signer undefined')
-			await expect(async () => token.approve('0xAccount', 500))
-				.rejects
-				.toThrow('Failed to approve token: signer undefined')
-		}
 		testAsyncFunctions(token)
 		expect(() => token.connect(null)).toThrow('Failed to connect Token: provider cannot be undefined')
-		testAsyncFunctions(poolToken)
-		expect(() => poolToken.connect(null)).toThrow('Failed to connect PoolToken: provider cannot be undefined')
 	});
 });
 
@@ -177,4 +170,11 @@ describe('Testing pool token constructor', () => {
 			})
 		)
 	});
+	it('Creating default', async () => {
+		const poolToken = PoolToken.CreateDefault();
+		assertToken(poolToken, expectedDefault)
+		assertPoolToken(poolToken, expectedDefault)
+		testAsyncFunctions(poolToken)
+		expect(() => poolToken.connect(null)).toThrow('Failed to connect PoolToken: provider cannot be undefined')
+	})
 });
