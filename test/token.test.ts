@@ -1,5 +1,6 @@
 jest.mock('ethers');
 
+import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
 const { utils } = jest.requireActual('ethers');
 ethers.utils = utils;
@@ -9,7 +10,7 @@ import Token from '../src/entities/token';
 import { SideEnum, StaticTokenInfo } from '../src/types';
 
 const expectedTokenInfo = {
-	tokenSupply: 1000,
+	tokenSupply: new BigNumber(1000),
 	pool: '0xPoolAddress',
 	address: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
 	name: 'Test Token',
@@ -19,7 +20,7 @@ const expectedTokenInfo = {
 }
 
 const expectedDefault = {
-	tokenSupply: 0,
+	tokenSupply: new BigNumber(0),
 	pool: '',
 	address: '',
 	name: '',
@@ -79,11 +80,11 @@ const assertToken: (token: Token | PoolToken, expectedTokenInfo: StaticTokenInfo
 }
 
 const assertPoolToken: (token: PoolToken, poolTokenInfo: {
-	tokenSupply: number,
+	tokenSupply: BigNumber,
 	pool: string,
 	side: SideEnum
 }) => void = (token, poolTokenInfo) => {
-	expect(token.supply.toNumber()).toEqual(poolTokenInfo.tokenSupply)
+	expect(token.supply).toEqual(poolTokenInfo.tokenSupply)
 	expect(token.pool).toEqual(poolTokenInfo.pool)
 	expect(token.side).toEqual(poolTokenInfo.side)
 }
