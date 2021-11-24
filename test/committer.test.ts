@@ -49,8 +49,6 @@ const committerInfo: CommitterInfo = {
 	}
 }
 
-const ZERO = new BigNumberJS(0);
-
 const provider = new ethers.providers.JsonRpcProvider('https://arb1.arbitrum.io/rpc');
 
 const createCommitter: (config?: CommitterInfo) => Promise<Committer> = async (config) => {
@@ -120,12 +118,12 @@ describe('Testing committer constructor', () => {
 	it('Creating default', () => {
 		const committer = Committer.CreateDefault();
 		expect(committer.address).toEqual('');
-		expect(committer.pendingLong.burn).toEqual(ZERO);
-		expect(committer.pendingLong.mint).toEqual(ZERO);
-		expect(committer.pendingShort.burn).toEqual(ZERO);
-		expect(committer.pendingShort.mint).toEqual(ZERO);
+		expect(committer.pendingLong.burn.toNumber()).toEqual(0);
+		expect(committer.pendingLong.mint.toNumber()).toEqual(0);
+		expect(committer.pendingShort.burn.toNumber()).toEqual(0);
+		expect(committer.pendingShort.mint.toNumber()).toEqual(0);
 		expect(committer.quoteTokenDecimals).toEqual(18);
-		expect(committer.minimumCommitSize).toEqual(ZERO);
+		expect(committer.minimumCommitSize.toNumber()).toEqual(0);
 		expect(() => committer.connect(null)).toThrow('Failed to connect Committer: provider cannot be undefined')
 	});
 });
