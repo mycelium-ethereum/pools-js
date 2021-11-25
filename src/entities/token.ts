@@ -27,7 +27,7 @@ export interface TokenInfo {
 export default class Token {
 	_contract?: ERC20;
 	address: string;
-	provider: ethers.providers.JsonRpcProvider | ethers.providers.JsonRpcSigner;
+	provider: ethers.providers.Provider;
 	name: string;
 	symbol: string;
 	decimals: number;
@@ -139,7 +139,7 @@ export default class Token {
 	 * Replaces the provider and connects the contract instance
 	 * @param provider The new provider to connect to
 	 */
-	public connect: (provider: ethers.providers.JsonRpcProvider | ethers.providers.JsonRpcSigner) => void = (provider) => {
+	public connect: (provider: ethers.providers.Provider) => void = (provider) => {
 		if (!provider) {
 			throw Error("Failed to connect Token: provider cannot be undefined")
 		}
