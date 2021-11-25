@@ -36,7 +36,7 @@ export const defaultCommitter = {
 export default class Committer {
 	_contract?: PoolCommitter;
 	address: string;
-	provider: ethers.providers.Provider;
+	provider: ethers.providers.Provider | ethers.Signer;
 	quoteTokenDecimals: number;
     pendingLong: PendingAmounts;
     pendingShort: PendingAmounts;
@@ -194,7 +194,7 @@ export default class Committer {
 	 * Replaces the provider and connects the contract instance
 	 * @param provider The new provider to connect to
 	 */
-	public connect: (provider: ethers.providers.Provider) => void = (provider) => {
+	public connect: (provider: ethers.providers.Provider | ethers.Signer) => void = (provider) => {
 		if (!provider) {
 			throw Error("Failed to connect Committer: provider cannot be undefined")
 		}

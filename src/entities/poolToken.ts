@@ -16,7 +16,7 @@ export interface IPoolToken extends IToken {
 export default class PoolToken {
 	_contract?: PoolTokenContract
 	address: string;
-	provider: ethers.providers.Provider;
+	provider: ethers.providers.Provider | ethers.Signer;
 	name: string;
 	symbol: string;
 	decimals: number;
@@ -137,7 +137,7 @@ export default class PoolToken {
 	 * Replaces the provider and connects the contract instance
 	 * @param provider The new provider to connect to
 	 */
-	public connect: (provider: ethers.providers.Provider) => void = (provider) => {
+	public connect: (provider: ethers.providers.Provider | ethers.Signer) => void = (provider) => {
 		if (!provider) {
 			throw Error("Failed to connect PoolToken: provider cannot be undefined")
 		}

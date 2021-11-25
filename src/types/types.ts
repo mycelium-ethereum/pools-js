@@ -17,7 +17,7 @@ export type PendingAmounts = {
  */
 export interface IContract {
 	address: string;
-	provider: ethers.providers.Provider;
+	provider: ethers.providers.Provider | ethers.Signer;
 }
 
 /**
