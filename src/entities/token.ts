@@ -27,7 +27,7 @@ export interface TokenInfo {
 export default class Token {
 	_contract?: ERC20;
 	address: string;
-	provider: ethers.providers.JsonRpcProvider;
+	provider: ethers.providers.JsonRpcProvider | ethers.providers.JsonRpcSigner;
 	name: string;
 	symbol: string;
 	decimals: number;
@@ -100,11 +100,7 @@ export default class Token {
 		if (!this._contract) {
 			throw Error("Failed to fetch balance: this._contract undefined")
 		}
-		const signer = this.provider?.getSigner();
-		if (!signer) {
-			throw Error("Failed to fetch balance: signer undefined")
-		}
-		const balanceOf = await this._contract.connect(signer).balanceOf(account).catch((error) => {
+		const balanceOf = await this._contract.balanceOf(account).catch((error) => {
 			throw Error("Failed to fetch balance: " + error?.message)
 		});
 		return (new BigNumber (ethers.utils.formatUnits(balanceOf, this.decimals)));
@@ -120,11 +116,7 @@ export default class Token {
 		if (!this._contract) {
 			throw Error("Failed to fetch allowance: this._contract undefined")
 		}
-		const signer = this.provider?.getSigner();
-		if (!signer) {
-			throw Error("Failed to fetch allowance: signer undefined")
-		}
-		const balanceOf = await this._contract.connect(signer).allowance(account, spender).catch((error) => {
+		const balanceOf = await this._contract.allowance(account, spender).catch((error) => {
 			throw Error("Failed to fetch allowance: " + error?.message);
 		});
 		return (new BigNumber (ethers.utils.formatUnits(balanceOf, this.decimals)));
@@ -140,18 +132,14 @@ export default class Token {
 		if (!this._contract) {
 			throw Error("Failed to approve token: this._contract undefined")
 		}
-		const signer = this.provider?.getSigner();
-		if (!signer) {
-			throw Error("Failed to approve token: signer undefined")
-		}
-		return this._contract.connect(signer).approve(spender, ethers.utils.formatUnits(amount.toString(), this.decimals));
+		return this._contract.approve(spender, ethers.utils.formatUnits(amount.toString(), this.decimals));
 	}
 
 	/**
 	 * Replaces the provider and connects the contract instance
 	 * @param provider The new provider to connect to
 	 */
-	public connect: (provider: ethers.providers.JsonRpcProvider) => void = (provider) => {
+	public connect: (provider: ethers.providers.JsonRpcProvider | ethers.providers.JsonRpcSigner) => void = (provider) => {
 		if (!provider) {
 			throw Error("Failed to connect Token: provider cannot be undefined")
 		}

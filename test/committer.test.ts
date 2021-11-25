@@ -134,13 +134,6 @@ describe('Testing commit' ,() => {
 		committer._contract = undefined;
 		expect(() => committer.commit(CommitEnum.longBurn, 1000)).toThrow("Failed to commit: this._contract undefined")
 	})
-	it('signer is undefined', async () => {
-		const committer = await createCommitter()
-		const mock = jest.fn().mockReturnValue(undefined)
-		committer.provider.getSigner = mock;
-		expect(() => committer.commit(CommitEnum.longBurn, 1000)).toThrow("Failed to commit: provider.getSigner is undefined")
-		expect(mock.mock.calls.length).toBe(1);
-	})
 })
 
 describe('Testing fetchShadowPool', () => {
