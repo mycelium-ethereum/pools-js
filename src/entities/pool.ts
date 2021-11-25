@@ -295,7 +295,7 @@ export default class Pool {
 		const netPendingShort = this.committer.pendingShort.mint.minus(this.committer.pendingShort.burn.times(newShortTokenPrice))
 		
 		const expectedLongBalance = this.longBalance.plus(valueTransfer.longValueTransfer).plus(netPendingLong);
-		const expectedShortBalance = this.longBalance.plus(valueTransfer.shortValueTransfer).plus(netPendingShort);
+		const expectedShortBalance = this.shortBalance.plus(valueTransfer.shortValueTransfer).plus(netPendingShort);
 
 		const expectedSkew = calcSkew(expectedShortBalance, expectedLongBalance);
 
@@ -401,7 +401,10 @@ export default class Pool {
 	 * 	quoteToken, short and long tokens and Committer instance
 	 * @param provider The new provider to connect to
 	 */
-	public connect: (provider: ethers.providers.JsonRpcProvider) => void = async (provider) => {
+	public connect: (provider: ethers.providers.JsonRpcProvider) => void = (provider) => {
+		if (!provider) {
+			throw Error("Failed to connect LeveragedPool: provider cannot be undefined")
+		}
 		this.provider = provider;
 		this._contract = this._contract?.connect(provider);
 		this.committer.connect(provider);

@@ -14,7 +14,7 @@ export interface IPoolCommitter extends IContract {
 	minimumCommitSize?: number;
 }
 
-const defaults = {
+export const defaultCommitter = {
 	pendingLong: {
 		mint: new BigNumber(0),
 		burn: new BigNumber(0),
@@ -25,7 +25,7 @@ const defaults = {
 	},
 	quoteTokenDecimals: 18,
 	minimumCommitSize: new BigNumber(0)
-}
+} as const
 
 /**
  * Interface for interacting with the PoolComitter.
@@ -46,10 +46,14 @@ export default class Committer {
 		// these all need to be ovverridden in the init function
 		this.address = '';
 		this.provider = new ethers.providers.JsonRpcProvider('');
-		this.pendingLong = defaults.pendingLong
-		this.pendingShort= defaults.pendingShort;
-		this.quoteTokenDecimals = defaults.quoteTokenDecimals;
-		this.minimumCommitSize = defaults.minimumCommitSize
+		this.pendingLong = {
+			...defaultCommitter.pendingLong
+		} 
+		this.pendingShort= {
+			...defaultCommitter.pendingShort
+		}
+		this.quoteTokenDecimals = defaultCommitter.quoteTokenDecimals;
+		this.minimumCommitSize = defaultCommitter.minimumCommitSize
 	}
 
 	/**
@@ -163,10 +167,10 @@ export default class Committer {
 		if (!this._contract) throw Error("Failed to update pending amounts: this._contract undefined")
 
 		const [
-			longMints,
 			longBurns,
-			shortMints,
-			shortBurns
+			longMints,
+			shortBurns,
+			shortMints
 		] = await Promise.all([
 			this.fetchShadowPool(CommitEnum.longBurn),
 			this.fetchShadowPool(CommitEnum.longMint),
@@ -192,7 +196,10 @@ export default class Committer {
 	 * Replaces the provider and connects the contract instance
 	 * @param provider The new provider to connect to
 	 */
-	public connect: (provider: ethers.providers.JsonRpcProvider) => void = async (provider) => {
+	public connect: (provider: ethers.providers.JsonRpcProvider) => void = (provider) => {
+		if (!provider) {
+			throw Error("Failed to connect Committer: provider cannot be undefined")
+		}
 		this.provider = provider;
 		this._contract = this._contract?.connect(provider);
 	}

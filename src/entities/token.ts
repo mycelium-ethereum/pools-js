@@ -151,7 +151,10 @@ export default class Token {
 	 * Replaces the provider and connects the contract instance
 	 * @param provider The new provider to connect to
 	 */
-	public connect: (provider: ethers.providers.JsonRpcProvider) => void = async (provider) => {
+	public connect: (provider: ethers.providers.JsonRpcProvider) => void = (provider) => {
+		if (!provider) {
+			throw Error("Failed to connect Token: provider cannot be undefined")
+		}
 		this.provider = provider;
 		this._contract = this._contract?.connect(provider);
 	}
