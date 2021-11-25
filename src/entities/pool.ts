@@ -58,7 +58,7 @@ export interface IPool extends StaticPoolInfo {
  */
 export default class Pool {
     address: string;
-	provider: ethers.providers.JsonRpcProvider;
+	provider: ethers.providers.Provider | ethers.Signer
 
 	_contract?: LeveragedPool;
 	_keeper?: PoolKeeper;
@@ -84,7 +84,7 @@ export default class Pool {
 	 * @param provider ethers RPC provider
 	 * @private
 	 */
-	private constructor(address: string, provider: ethers.providers.JsonRpcProvider) {
+	private constructor(address: string, provider: ethers.providers.Provider | ethers.Signer) {
 		this.address = address;
 		this.provider = provider;
 
@@ -401,7 +401,7 @@ export default class Pool {
 	 * 	quoteToken, short and long tokens and Committer instance
 	 * @param provider The new provider to connect to
 	 */
-	public connect: (provider: ethers.providers.JsonRpcProvider) => void = (provider) => {
+	public connect: (provider: ethers.providers.Provider | ethers.Signer) => void = (provider) => {
 		if (!provider) {
 			throw Error("Failed to connect LeveragedPool: provider cannot be undefined")
 		}

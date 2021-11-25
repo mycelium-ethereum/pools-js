@@ -36,7 +36,7 @@ export const defaultCommitter = {
 export default class Committer {
 	_contract?: PoolCommitter;
 	address: string;
-	provider: ethers.providers.JsonRpcProvider;
+	provider: ethers.providers.Provider | ethers.Signer;
 	quoteTokenDecimals: number;
     pendingLong: PendingAmounts;
     pendingShort: PendingAmounts;
@@ -115,9 +115,7 @@ export default class Committer {
 	 */
 	public commit: (type: CommitEnum, amount: number | BigNumber) => Promise<ethers.ContractTransaction> = (type, amount) => {
 		if (!this._contract) throw Error("Failed to commit: this._contract undefined")
-		const signer = this.provider.getSigner();
-		if (!signer) throw Error("Failed to commit: provider.getSigner is undefined")
-		return this._contract.connect(signer).commit(type, ethers.utils.parseUnits(amount.toString(), this.quoteTokenDecimals))
+		return this._contract.commit(type, ethers.utils.parseUnits(amount.toString(), this.quoteTokenDecimals))
 	}
 
 
@@ -196,7 +194,7 @@ export default class Committer {
 	 * Replaces the provider and connects the contract instance
 	 * @param provider The new provider to connect to
 	 */
-	public connect: (provider: ethers.providers.JsonRpcProvider) => void = (provider) => {
+	public connect: (provider: ethers.providers.Provider | ethers.Signer) => void = (provider) => {
 		if (!provider) {
 			throw Error("Failed to connect Committer: provider cannot be undefined")
 		}
