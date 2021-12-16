@@ -110,6 +110,54 @@ export const poolList: Record<KnownNetwork, StaticPoolInfo[]> = {
             },
             quoteToken: tokenMap[ARBITRUM].USDC,
         },
+        {
+            name: '1-EUR/USD',
+            address: '0xfCbF80Eba760576d6Aa4402Bb781321158289E9C',
+            leverage: 1,
+            updateInterval: ONE_HOUR,
+            frontRunningInterval: FIVE_MINUTES,
+            keeper: '0x759E817F0C40B11C775d1071d466B5ff5c6ce28e',
+            committer: {
+                address: '0x4C704E2Dc8a9B4c8701f5eBa9b0fF5909e172aBb',
+            },
+            longToken: {
+                name: '1L-EUR/USD',
+                address: '0xb9ce41C5AA26A30E67Fd4228f6e6DcF95B6dAbBA',
+                symbol: '1L-EUR/USD',
+                decimals: USDC_DECIMALS,
+            },
+            shortToken: {
+                name: '1S-EUR/USD',
+                address: '0x832A988aD7aC0B5147e4869a377185208A7A29DA',
+                symbol: '1S-EUR/USD',
+                decimals: USDC_DECIMALS,
+            },
+            quoteToken: tokenMap[ARBITRUM].USDC,
+        },
+        {
+            name: '3-EUR/USD',
+            address: '0x98DbD6eFdCdCf0394Ca36BB5dd4E63D78D1697f3',
+            leverage: 3,
+            updateInterval: ONE_HOUR,
+            frontRunningInterval: FIVE_MINUTES,
+            keeper: '0x759E817F0C40B11C775d1071d466B5ff5c6ce28e',
+            committer: {
+                address: '0xB75324b2794Fff43B49A7AeF26456c623BDfED4e',
+            },
+            longToken: {
+                name: '3L-EUR/USD',
+                address: '0x96a631636e272447cf60775f71cC6AB65B5F7ef1',
+                symbol: '3L-EUR/USD',
+                decimals: USDC_DECIMALS,
+            },
+            shortToken: {
+                name: '3S-EUR/USD',
+                address: '0x61544B2527448aC8b7E9d3ba7E4c3Bba4BFe1bB7',
+                symbol: '3S-EUR/USD',
+                decimals: USDC_DECIMALS,
+            },
+            quoteToken: tokenMap[ARBITRUM].USDC,
+        },
     ],
     [ARBITRUM_RINKEBY]: [
         {
