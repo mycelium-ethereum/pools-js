@@ -1,5 +1,5 @@
 import { ERC20, ERC20__factory } from "@tracer-protocol/perpetual-pools-contracts/types";
-import BigNumber from "bignumber.js";
+import BigNumber from "bignumber.js"
 import { ethers } from "ethers";
 import { IContract } from "../types";
 
@@ -70,14 +70,15 @@ export default class Token {
 	 * @private
 	 * @param tokenInfo {@link IToken | IToken interface props}
 	 */
-	private init: (tokenInfo: IToken) => void = async (tokenInfo) => {
+	private init: (tokenInfo: IToken) => Promise<void> = async (tokenInfo) => {
 		this.provider = tokenInfo.provider;
 		this.address = tokenInfo.address;
 
 		const contract = ERC20__factory.connect(
 			tokenInfo.address,
 			tokenInfo.provider
-		)
+		);
+
 		this._contract = contract;
 
 		const [name, symbol, decimals] = await Promise.all([
