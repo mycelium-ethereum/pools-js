@@ -41,7 +41,6 @@ interface TestConfig {
 	keeper: string;
 	committer: {
 		address: string;
-		minimumCommitSize: 1000;
 	}
 	leverage: number;
 	updateInterval: number;
@@ -64,7 +63,6 @@ const poolConfig: TestConfig = {
 	keeper: '0x759E817F0C40B11C775d1071d466B5ff5c6ce28e',
 	committer: {
 		address: '0x72c4e7Aa6c743DA4e690Fa7FA66904BC3f2C9C04',
-		minimumCommitSize: 1000
 	},
 	longToken: {
 		name: '3L-ETH/USD',

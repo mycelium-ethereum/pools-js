@@ -444,7 +444,3 @@ describe('calcAPY', () => {
     expect(apy.toNumber()).to.be.bignumber.equal(0)
   })
 })
-
-// IGNORING SINCE V2 WONT HAVE THIS
-// describe('calcMinimumCommit', () => {
-// })

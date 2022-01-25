@@ -31,7 +31,6 @@ export interface StaticPoolInfo {
     keeper?: string;
     committer?: {
 		address: string;
-		minimumCommitSize?: number;
 	}
     shortToken?: TokenInfo;
     longToken?: TokenInfo;

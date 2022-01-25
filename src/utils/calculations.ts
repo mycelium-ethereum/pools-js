@@ -152,25 +152,6 @@ export const calcDirection: (oldPrice: BigNumber, newPrice: BigNumber) => BigNum
 };
 
 /**
- * Calc minimum amount in to sell
- * @param totalSupply total token supply
- * @param tokenBalance token balance
- * @param minimumCommitSize
- * @param pendingCommits accumulative commit amounts
- * @returns Minimum amount in
- */
-export const calcMinAmountIn: (
-    totalSupply: BigNumber,
-    tokenBalance: BigNumber,
-    minimumCommitSize: BigNumber,
-    pendingCommits: BigNumber,
-) => BigNumber = (totalSupply, tokenBalance, minimumCommitSize, pendingCommits) => {
-    // minumumCommitSize = (balance * amountIn) / tokenSupply + shadowPool
-    // (minimumCommitSize * (tokenSupply + shadowPool)) / balance
-    return minimumCommitSize.times(totalSupply.plus(pendingCommits)).div(tokenBalance.minus(minimumCommitSize));
-};
-
-/**
  * Calculate the pool tokens price
  * Since totalQuoteValue will generally be in USD the returned amount
  *  will also be in USD
