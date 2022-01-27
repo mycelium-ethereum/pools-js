@@ -85,7 +85,9 @@ export default class Committer {
 		this._contract = contract;
 
 		try {
-			await this.fetchAllShadowPools()
+			const { pendingLong, pendingShort } = await this.fetchAllShadowPools();
+			this.pendingShort = pendingShort;
+			this.pendingLong = pendingLong;
 		} catch(error) {
 			throw Error(
 				"Failed to initialise committer: " + error
@@ -119,26 +121,24 @@ export default class Committer {
 		if (!this._contract) throw Error("Failed to update pending amounts: this._contract undefined")
 
 		const [
-			// [
-				// longBurnsFrontRunning,
-				// longMintsFrontRunning,
-				// shortBurnsFrontRunning,
-				// shortMintsFrontRunning,
+			[
+				longBurnsFrontRunning,
+				longMintsFrontRunning,
+				shortBurnsFrontRunning,
+				shortMintsFrontRunning,
 				// shortBurnLongMintsFrontRunning,
 				// longBurnShortMintsFrontRunning,
 				// updateIntervalIdFrontRunning,
-			// ], 
-			// TODO temp
-			_frontRunning,
+			], 
 			[
 				longBurns,
 				longMints,
 				shortBurns,
 				shortMints,
-				_shortBurnLongMints,
-				_longBurnShortMints,
-				_updateIntervalId,
-			], 
+			// _shortBurnLongMints,
+			// _longBurnShortMints,
+			// _updateIntervalId,
+			]	
 		] = await this._contract.getPendingCommits().catch((error) => {
 			throw Error("Failed to update pending amounts: " + error?.message)
 		})
@@ -146,12 +146,16 @@ export default class Committer {
 		const decimals = this.quoteTokenDecimals;
 		return ({
 			pendingLong: {
-				mint: new BigNumber(ethers.utils.formatUnits(longMints, decimals)),
-				burn: new BigNumber(ethers.utils.formatUnits(longBurns, decimals))
+				mint: new BigNumber(ethers.utils.formatUnits(longMints ?? 0, decimals))
+					.plus(new BigNumber(ethers.utils.formatUnits(longBurnsFrontRunning ?? 0, decimals))),
+				burn: new BigNumber(ethers.utils.formatUnits(longBurns ?? 0, decimals))
+					.plus(new BigNumber(ethers.utils.formatUnits(longMintsFrontRunning ?? 0, decimals))),
 			},
 			pendingShort: {
-				mint: new BigNumber(ethers.utils.formatUnits(shortMints, decimals)),
-				burn: new BigNumber(ethers.utils.formatUnits(shortBurns, decimals))
+				mint: new BigNumber(ethers.utils.formatUnits(shortMints ?? 0, decimals))
+					.plus(new BigNumber(ethers.utils.formatUnits(shortMintsFrontRunning ?? 0, decimals))),
+				burn: new BigNumber(ethers.utils.formatUnits(shortBurns ?? 0, decimals))
+					.plus(new BigNumber(ethers.utils.formatUnits(shortBurnsFrontRunning ?? 0, decimals))),
 			}
 		})
 	}
