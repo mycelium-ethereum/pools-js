@@ -316,7 +316,7 @@ export const poolList: Record<KnownNetwork, StaticPoolInfo[]> = {
             frontRunningInterval: THIRTY_SECONDS,
             keeper: '0xFBCbB7184935122Fdf2c7e8b69a3207Ece722749',
             committer: {
-                address: '0x0212e821a5383dB36362f197fdb0Dc93A75508C4',
+                address: '0x29EAAcB6FF4B883F1Ed630425cE89932601753E1',
             },
             longToken: {
                 name: '3-LONG-ETH/USD',
