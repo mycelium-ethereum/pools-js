@@ -357,31 +357,6 @@ export const poolList: Record<KnownNetwork, StaticPoolInfo[]> = {
             },
             quoteToken: TEST_QUOTE_TOKEN
         },
-        {
-            // 3x
-            name: '3-ETH/USDC-SMA',
-            address: '0xAA388c11f738a77945FB96d86Db8D6F7dCc5CCd7',
-            leverage: 3,
-            updateInterval: FIVE_MINUTES,
-            frontRunningInterval: THIRTY_SECONDS,
-            keeper: '0xFBCbB7184935122Fdf2c7e8b69a3207Ece722749',
-            committer: {
-                address: '0x96025f801eE19dfef560dbEf3122B254fD529550',
-            },
-            longToken: {
-                name: '3-LONG-ETH/USD',
-                address: '0xAD3Bf2833765482C20C638760035fF777adfC8c4',
-                symbol: '3L-ETH/USD',
-                decimals: TEST_QUOTE_TOKEN.decimals,
-            },
-            shortToken: {
-                name: '3-SHORT-ETH/USD',
-                address: '0xCdaB5Df545A3650faeD921E7202e0bc3f02e8EC7',
-                symbol: '3S-ETH/USD',
-                decimals: TEST_QUOTE_TOKEN.decimals,
-            },
-            quoteToken: TEST_QUOTE_TOKEN
-        },
     ],
     [MAINNET]: [],
     [RINKEBY]: [],
