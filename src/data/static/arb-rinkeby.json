@@ -16,18 +16,18 @@
         "name": "1-LONG-BTC/USD",
         "address": "0x258585612e9e3F439bA72c5a22566d533a13ea2f",
         "symbol": "1L-BTC/USD",
-        "decimals": 6
+        "decimals": 18
       },
       "shortToken": {
         "name": "1-SHORT-BTC/USD",
         "address": "0x2587c7B52fbA30f224E7139e390AC97402e9bDdf",
         "symbol": "1S-BTC/USD",
-        "decimals": 6
+        "decimals": 18
       },
       "quoteToken": {
         "name": "USDC",
         "symbol": "USDC",
-        "decimals": 6,
+        "decimals": 18,
         "address": "0x3ebDcefA6a4721a61c7BB6047fe9ca0214985798"
       }
     },
@@ -45,18 +45,18 @@
         "name": "3-LONG-BTC/USD",
         "address": "0xBdCA56cBb04cD6A588adE836488F11554ac23D93",
         "symbol": "3L-BTC/USD",
-        "decimals": 6
+        "decimals": 18
       },
       "shortToken": {
         "name": "3-SHORT-BTC/USD",
         "address": "0x241eCEA090099cabfDC71cA8e7EfA3D7B7C5e4b4",
         "symbol": "3S-BTC/USD",
-        "decimals": 6
+        "decimals": 18
       },
       "quoteToken": {
         "name": "USDC",
         "symbol": "USDC",
-        "decimals": 6,
+        "decimals": 18,
         "address": "0x3ebDcefA6a4721a61c7BB6047fe9ca0214985798"
       }
     },
@@ -74,18 +74,18 @@
         "name": "1-LONG-ETH/USD",
         "address": "0x9676740E1c8Ad23fB0b5C4A98761d188DEb4Aff5",
         "symbol": "1L-ETH/USD",
-        "decimals": 6
+        "decimals": 18
       },
       "shortToken": {
         "name": "1-SHORT-ETH/USD",
         "address": "0xdd04586daEfcb0951F45694b106309366fce972C",
         "symbol": "1S-ETH/USD",
-        "decimals": 6
+        "decimals": 18
       },
       "quoteToken": {
         "name": "USDC",
         "symbol": "SDC",
-        "decimals": 6,
+        "decimals": 18,
         "address": "0x3ebDcefA6a4721a61c7BB6047fe9ca0214985798"
       }
     },
@@ -103,18 +103,18 @@
         "name": "3-LONG-ETH/USD",
         "address": "0xD43519F7D604d0c486D90d1aCE38235d432874f1",
         "symbol": "3L-ETH/USD",
-        "decimals": 6
+        "decimals": 18
       },
       "shortToken": {
         "name": "3-SHORT-ETH/USD",
         "address": "0x4aDe19AF0f3d1b3C10015fA4B353962DD805e0f6",
         "symbol": "3S-ETH/USD",
-        "decimals": 6
+        "decimals": 18
       },
       "quoteToken": {
         "name": "USDC",
         "symbol": "USDC",
-        "decimals": 6,
+        "decimals": 18,
         "address": "0x3ebDcefA6a4721a61c7BB6047fe9ca0214985798"
       }
     }

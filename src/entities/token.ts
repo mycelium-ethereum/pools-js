@@ -27,7 +27,7 @@ export interface TokenInfo {
 export default class Token {
 	_contract?: ERC20;
 	address: string;
-	provider: ethers.providers.Provider | ethers.Signer;
+	provider: ethers.providers.Provider | ethers.Signer | undefined;
 	name: string;
 	symbol: string;
 	decimals: number;
@@ -38,7 +38,7 @@ export default class Token {
 	private constructor () {
 		// these all need to be ovverridden in the init function
 		this.address = '';
-		this.provider = new ethers.providers.JsonRpcProvider('');
+		this.provider = undefined;
 		this.name = '';
 		this.symbol = '';
 		this.decimals = 18;

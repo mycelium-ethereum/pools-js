@@ -31,7 +31,7 @@ export const defaultCommitter = {
 export default class Committer {
 	_contract?: PoolCommitter;
 	address: string;
-	provider: ethers.providers.Provider | ethers.Signer;
+	provider: ethers.providers.Provider | ethers.Signer | undefined;
 	quoteTokenDecimals: number;
     pendingLong: PendingAmounts;
     pendingShort: PendingAmounts;
@@ -39,7 +39,6 @@ export default class Committer {
 	private constructor () {
 		// these all need to be ovverridden in the init function
 		this.address = '';
-		this.provider = new ethers.providers.JsonRpcProvider('');
 		this.pendingLong = {
 			...defaultCommitter.pendingLong
 		} 

@@ -57,7 +57,7 @@ export interface IPool extends StaticPoolInfo {
  */
 export default class Pool {
     address: string;
-	provider: ethers.providers.Provider | ethers.Signer
+	provider: ethers.providers.Provider | ethers.Signer | undefined
 
 	_contract?: LeveragedPool;
 	_keeper?: PoolKeeper;
@@ -83,9 +83,9 @@ export default class Pool {
 	 * @param provider ethers RPC provider
 	 * @private
 	 */
-	private constructor(address: string, provider: ethers.providers.Provider | ethers.Signer) {
-		this.address = address;
-		this.provider = provider;
+	private constructor() {
+		this.address = '';
+		this.provider = undefined;
 
 		this.name = '';
 		this.updateInterval = new BigNumber (0);
@@ -109,7 +109,7 @@ export default class Pool {
 	 * @returns a Promise containing an initialised Pool class ready to be used
 	 */
 	public static Create: (poolInfo: IPool) => Promise<Pool> = async (poolInfo) => {
-		const pool = new Pool(poolInfo.address, poolInfo.provider);
+		const pool = new Pool();
 		await pool.init(poolInfo);
 		return pool;
 	}
@@ -118,7 +118,8 @@ export default class Pool {
 	 * Creates an empty pool that can be used as a default
 	 */
 	public static CreateDefault: () => Pool = () => {
-		const pool = new Pool('', new ethers.providers.JsonRpcProvider());
+		// trick typescript to take undefined
+		const pool = new Pool();
 		return pool;
 	}
 
@@ -132,10 +133,12 @@ export default class Pool {
 	 * @private
 	 * @param poolInfo {@link IPool | IPool interface props}
 	 */
-	private init: (poolInfo: IPool) => void = async (poolInfo) => {
+	private init: (poolInfo: IPool) => Promise<void> = async (poolInfo) => {
+		this.address = poolInfo.address;
+		this.provider = poolInfo.provider;
 		const contract = LeveragedPool__factory.connect(
 			poolInfo.address,
-			this.provider
+			poolInfo.provider
 		)
 		this._contract = contract;
 		
