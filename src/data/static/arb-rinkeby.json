@@ -1,0 +1,122 @@
+{
+  "name": "Tracer DAO Verified",
+  "timestamp": "",
+  "pools": [
+    {
+      "name": "1-BTC/USD",
+      "address": "0xea098D1bA10d4818450b4ec329098673BCaE31b3",
+      "leverage": 1,
+      "updateInterval": 3600,
+      "frontRunningInterval": 300,
+      "keeper": "0x015b7a809B18cf541A99596a29cd0dF81aE8f55e",
+      "committer": {
+        "address": "0x5e3F781936814302eFe5676A8BcE66ACbbD954b6"
+      },
+      "longToken": {
+        "name": "1-LONG-BTC/USD",
+        "address": "0x258585612e9e3F439bA72c5a22566d533a13ea2f",
+        "symbol": "1L-BTC/USD",
+        "decimals": 6
+      },
+      "shortToken": {
+        "name": "1-SHORT-BTC/USD",
+        "address": "0x2587c7B52fbA30f224E7139e390AC97402e9bDdf",
+        "symbol": "1S-BTC/USD",
+        "decimals": 6
+      },
+      "quoteToken": {
+        "name": "USDC",
+        "symbol": "USDC",
+        "decimals": 6,
+        "address": "0x3ebDcefA6a4721a61c7BB6047fe9ca0214985798"
+      }
+    },
+    {
+      "name": "3-BTC/USD",
+      "address": "0x9F280f08c0aAe460022E59930c4453c36802B3c6",
+      "leverage": 3,
+      "updateInterval": 3600,
+      "frontRunningInterval": 300,
+      "keeper": "0x015b7a809B18cf541A99596a29cd0dF81aE8f55e",
+      "committer": {
+        "address": "0xc8635F7da7830f2268B3210D64D9584A864C7809"
+      },
+      "longToken": {
+        "name": "3-LONG-BTC/USD",
+        "address": "0xBdCA56cBb04cD6A588adE836488F11554ac23D93",
+        "symbol": "3L-BTC/USD",
+        "decimals": 6
+      },
+      "shortToken": {
+        "name": "3-SHORT-BTC/USD",
+        "address": "0x241eCEA090099cabfDC71cA8e7EfA3D7B7C5e4b4",
+        "symbol": "3S-BTC/USD",
+        "decimals": 6
+      },
+      "quoteToken": {
+        "name": "USDC",
+        "symbol": "USDC",
+        "decimals": 6,
+        "address": "0x3ebDcefA6a4721a61c7BB6047fe9ca0214985798"
+      }
+    },
+    {
+      "name": "1-ETH/USD",
+      "address": "0xF8AbFe7803a7ae2D088e0D6369235842a2312751",
+      "leverage": 1,
+      "updateInterval": 3600,
+      "frontRunningInterval": 300,
+      "keeper": "0x015b7a809B18cf541A99596a29cd0dF81aE8f55e",
+      "committer": {
+        "address": "0xA7374E54F286427c896810F6b60E85e5dD913BbE"
+      },
+      "longToken": {
+        "name": "1-LONG-ETH/USD",
+        "address": "0x9676740E1c8Ad23fB0b5C4A98761d188DEb4Aff5",
+        "symbol": "1L-ETH/USD",
+        "decimals": 6
+      },
+      "shortToken": {
+        "name": "1-SHORT-ETH/USD",
+        "address": "0xdd04586daEfcb0951F45694b106309366fce972C",
+        "symbol": "1S-ETH/USD",
+        "decimals": 6
+      },
+      "quoteToken": {
+        "name": "USDC",
+        "symbol": "SDC",
+        "decimals": 6,
+        "address": "0x3ebDcefA6a4721a61c7BB6047fe9ca0214985798"
+      }
+    },
+    {
+      "name": "3-ETH/USD",
+      "address": "0xD9991942Bc6D916A8C591f888e8E81FaB4Cc254d",
+      "leverage": 3,
+      "updateInterval": 3600,
+      "frontRunningInterval": 300,
+      "keeper": "0x015b7a809B18cf541A99596a29cd0dF81aE8f55e",
+      "committer": {
+        "address": "0xa321c542a23f5173361f29c3809FAa74C25dAB46"
+      },
+      "longToken": {
+        "name": "3-LONG-ETH/USD",
+        "address": "0xD43519F7D604d0c486D90d1aCE38235d432874f1",
+        "symbol": "3L-ETH/USD",
+        "decimals": 6
+      },
+      "shortToken": {
+        "name": "3-SHORT-ETH/USD",
+        "address": "0x4aDe19AF0f3d1b3C10015fA4B353962DD805e0f6",
+        "symbol": "3S-ETH/USD",
+        "decimals": 6
+      },
+      "quoteToken": {
+        "name": "USDC",
+        "symbol": "USDC",
+        "decimals": 6,
+        "address": "0x3ebDcefA6a4721a61c7BB6047fe9ca0214985798"
+      }
+    }
+  ]
+}
