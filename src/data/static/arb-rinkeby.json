@@ -84,7 +84,7 @@
       },
       "quoteToken": {
         "name": "USDC",
-        "symbol": "SDC",
+        "symbol": "USDC",
         "decimals": 18,
         "address": "0x3ebDcefA6a4721a61c7BB6047fe9ca0214985798"
       }
