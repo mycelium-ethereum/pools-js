@@ -64,7 +64,7 @@ export default class PoolToken {
 	 * Private initialisation function called in {@link PoolToken.Create}
 	 * @param tokenInfo {@link IPoolToken | IPoolToken interface props}
 	 */
-	private init: (tokenInfo: IPoolToken) => void = async (tokenInfo) => {
+	private init: (tokenInfo: IPoolToken) => Promise<void> = async (tokenInfo) => {
 		this.provider = tokenInfo.provider;
 		this.address = tokenInfo.address;
 		this.pool = tokenInfo.pool;

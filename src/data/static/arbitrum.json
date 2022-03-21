@@ -24,7 +24,7 @@
         "symbol": "1S-BTC/USD",
         "decimals": 6
       },
-      "quoteToken": {
+      "settlementToken": {
         "name": "USDC",
         "symbol": "USDC",
         "decimals": 6,
@@ -53,7 +53,7 @@
         "symbol": "3S-BTC/USD",
         "decimals": 6
       },
-      "quoteToken": {
+      "settlementToken": {
         "name": "USDC",
         "symbol": "USDC",
         "decimals": 6,
@@ -82,7 +82,7 @@
         "symbol": "1S-ETH/USD",
         "decimals": 6
       },
-      "quoteToken": {
+      "settlementToken": {
         "name": "USDC",
         "symbol": "USDC",
         "decimals": 6,
@@ -111,7 +111,7 @@
         "symbol": "3S-ETH/USD",
         "decimals": 6
       },
-      "quoteToken": {
+      "settlementToken": {
         "name": "USDC",
         "symbol": "USDC",
         "decimals": 6,
@@ -140,7 +140,7 @@
         "symbol": "3S-TOKE/USD",
         "decimals": 6
       },
-      "quoteToken": {
+      "settlementToken": {
         "name": "USDC",
         "symbol": "USDC",
         "decimals": 6,
@@ -169,7 +169,7 @@
         "symbol": "3S-LINK/USD",
         "decimals": 6
       },
-      "quoteToken": {
+      "settlementToken": {
         "name": "USDC",
         "symbol": "USDC",
         "decimals": 6,
@@ -198,7 +198,7 @@
         "symbol": "3S-AAVE/USD",
         "decimals": 18
       },
-      "quoteToken": {
+      "settlementToken": {
         "name": "Frax",
         "symbol": "FRAX",
         "decimals": 18,
@@ -227,7 +227,7 @@
         "symbol": "1S-EUR/USD",
         "decimals": 6
       },
-      "quoteToken": {
+      "settlementToken": {
         "name": "USDC",
         "symbol": "USDC",
         "decimals": 6,
@@ -256,7 +256,7 @@
         "symbol": "3S-EUR/USD",
         "decimals": 6
       },
-      "quoteToken": {
+      "settlementToken": {
         "name": "USDC",
         "symbol": "USDC",
         "decimals": 6,

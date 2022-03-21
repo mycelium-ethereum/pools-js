@@ -34,7 +34,7 @@ export interface StaticPoolInfo {
 	}
     shortToken?: TokenInfo;
     longToken?: TokenInfo;
-    quoteToken?: TokenInfo;
+    settlementToken?: TokenInfo;
 }
 
 /**
@@ -70,7 +70,7 @@ export default class Pool {
     committer: Committer;
     shortToken: PoolToken;
     longToken: PoolToken;
-    quoteToken: Token;
+    settlementToken: Token;
     lastUpdate: BigNumber;
     lastPrice: BigNumber;
     shortBalance: BigNumber;
@@ -95,7 +95,7 @@ export default class Pool {
 		this.committer = Committer.CreateDefault();
 		this.shortToken = PoolToken.CreateDefault();
 		this.longToken = PoolToken.CreateDefault();
-		this.quoteToken = Token.CreateDefault();
+		this.settlementToken = Token.CreateDefault();
 		this.lastUpdate = new BigNumber(0);
 		this.lastPrice = new BigNumber(0);
 		this.shortBalance = new BigNumber(0);
@@ -151,13 +151,13 @@ export default class Pool {
 			poolInfo?.name ? poolInfo?.name : contract.poolName()
 		]);
 
-		const [longTokenAddress, shortTokenAddress, quoteTokenAddress] = await Promise.all([
+		const [longTokenAddress, shortTokenAddress, settlementTokenAddress] = await Promise.all([
 			poolInfo.longToken?.address ? poolInfo.longToken?.address : contract.tokens(0),
 			poolInfo.shortToken?.address ? poolInfo.shortToken?.address : contract.tokens(1),
-			poolInfo.quoteToken?.address ? poolInfo?.quoteToken?.address : contract.quoteToken(),
+			poolInfo.settlementToken?.address ? poolInfo?.settlementToken?.address : contract.settlementToken()
 		])
 
-		const [shortToken, longToken, quoteToken] = await Promise.all(
+		const [shortToken, longToken, settlementToken] = await Promise.all(
 			[
 				PoolToken.Create({
 					...poolInfo.shortToken,
@@ -172,20 +172,20 @@ export default class Pool {
 					provider: this.provider,
 					side: SideEnum.long
 				}), Token.Create({
-					...poolInfo.quoteToken,
-					address: quoteTokenAddress,
+					...poolInfo.settlementToken,
+					address: settlementTokenAddress,
 					provider: this.provider,
 				})
 			]
 		)
 		this.shortToken = shortToken;
 		this.longToken = longToken;
-		this.quoteToken = quoteToken;
+		this.settlementToken = settlementToken;
 
 		const poolCommitter = await Committer.Create({
 			address: committer,
 			provider: this.provider,
-			quoteTokenDecimals: quoteToken.decimals,
+			settlementTokenDecimals: settlementToken.decimals,
 			...poolInfo.committer
 		})
 		this.committer = poolCommitter;
@@ -339,8 +339,8 @@ export default class Pool {
 			throw Error("Failed to update pool balances: " + error?.message ?? error)
 		})
 
-        const shortBalance = new BigNumber(ethers.utils.formatUnits(shortBalance_, this.quoteToken.decimals));
-        const longBalance = new BigNumber(ethers.utils.formatUnits(longBalance_, this.quoteToken.decimals));
+        const shortBalance = new BigNumber(ethers.utils.formatUnits(shortBalance_, this.settlementToken.decimals));
+        const longBalance = new BigNumber(ethers.utils.formatUnits(longBalance_, this.settlementToken.decimals));
 
 		this.setLongBalance(longBalance);
 		this.setShortBalance(shortBalance);
@@ -400,7 +400,7 @@ export default class Pool {
 
 	/**
 	 * Replaces the provider and connects the contract instance, also connects the
-	 * 	quoteToken, short and long tokens and Committer instance
+	 * 	settlementToken, short and long tokens and Committer instance
 	 * @param provider The new provider to connect to
 	 */
 	public connect: (provider: ethers.providers.Provider | ethers.Signer) => void = (provider) => {
@@ -412,7 +412,7 @@ export default class Pool {
 		this.committer.connect(provider);
 		this.longToken.connect(provider);
 		this.shortToken.connect(provider);
-		this.quoteToken.connect(provider);
+		this.settlementToken.connect(provider);
 	}
 
 	/**

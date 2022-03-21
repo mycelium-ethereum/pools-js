@@ -24,7 +24,7 @@
         "symbol": "1S-BTC/USD",
         "decimals": 18
       },
-      "quoteToken": {
+      "settlementToken": {
         "name": "USDC",
         "symbol": "USDC",
         "decimals": 18,
@@ -53,7 +53,7 @@
         "symbol": "3S-BTC/USD",
         "decimals": 18
       },
-      "quoteToken": {
+      "settlementToken": {
         "name": "USDC",
         "symbol": "USDC",
         "decimals": 18,
@@ -82,7 +82,7 @@
         "symbol": "1S-ETH/USD",
         "decimals": 18
       },
-      "quoteToken": {
+      "settlementToken": {
         "name": "USDC",
         "symbol": "USDC",
         "decimals": 18,
@@ -111,7 +111,7 @@
         "symbol": "3S-ETH/USD",
         "decimals": 18
       },
-      "quoteToken": {
+      "settlementToken": {
         "name": "USDC",
         "symbol": "USDC",
         "decimals": 18,
