@@ -323,6 +323,7 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
     //      = lastUpdate + updateInterval < frontRunningInterval + commitCreated
     //      = lastUpdate + updateInterval < updateInterval + commitCreated
     //      = lastUpdate < commitCreated
+    //   and will always be included in the following updateInterval unless lastUpdate < commitCreated
     if (numberOfUpdateInteravalsToWait === 1) {
         numberOfUpdateInteravalsToWait = 0
     }
