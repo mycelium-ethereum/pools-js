@@ -314,7 +314,7 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
 
     // if numberOfUpdateInteravalsToWait is 1 then frontRunningInterval <= updateInterval
     //  for frontRunningInterval < updateInterval 
-    //   the conditional is handled as expected (checking if it is within the frontRunningInterval)
+    //   set numberOfWaitIntervals to 0 since there is potential it CAN be included next updateInterval
     //  for frontRunningInterval === updateInterval
     //   the commit will be appropriately caught by the condition
     //      (potentialExecutionTime - commitCreated) < frontRunningInterval
