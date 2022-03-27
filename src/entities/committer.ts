@@ -7,7 +7,7 @@ import { CommitEnum, IContract, PendingAmounts } from "../types";
  * PoolCommitter class constructor inputs
  */
 export interface IPoolCommitter extends IContract {
-	quoteTokenDecimals: number;
+	settlementTokenDecimals: number;
 }
 
 export const defaultCommitter = {
@@ -19,7 +19,7 @@ export const defaultCommitter = {
 		mint: new BigNumber(0),
 		burn: new BigNumber(0),
 	},
-	quoteTokenDecimals: 18,
+	settlementTokenDecimals: 18,
 } as const
 
 /**
@@ -32,7 +32,7 @@ export default class Committer {
 	_contract?: PoolCommitter;
 	address: string;
 	provider: ethers.providers.Provider | ethers.Signer | undefined;
-	quoteTokenDecimals: number;
+	settlementTokenDecimals: number;
     pendingLong: PendingAmounts;
     pendingShort: PendingAmounts;
 
@@ -45,7 +45,7 @@ export default class Committer {
 		this.pendingShort= {
 			...defaultCommitter.pendingShort
 		}
-		this.quoteTokenDecimals = defaultCommitter.quoteTokenDecimals;
+		this.settlementTokenDecimals = defaultCommitter.settlementTokenDecimals;
 	}
 
 	/**
@@ -75,7 +75,7 @@ export default class Committer {
 	private init: (commitInfo: IPoolCommitter) => Promise<void> = async (commitInfo) => {
 		this.provider = commitInfo.provider;
 		this.address = commitInfo.address;
-		this.quoteTokenDecimals = commitInfo.quoteTokenDecimals;
+		this.settlementTokenDecimals = commitInfo.settlementTokenDecimals;
 
 		const contract = PoolCommitter__factory.connect(
 			commitInfo.address,
@@ -103,7 +103,7 @@ export default class Committer {
 	public commit: (type: CommitEnum, amount: number | BigNumber) => Promise<ethers.ContractTransaction> = (type, amount) => {
 		if (!this._contract) throw Error("Failed to commit: this._contract undefined")
 		// TODO allow from aggregate balance and auto claim
-		return this._contract.commit(type, ethers.utils.parseUnits(amount.toString(), this.quoteTokenDecimals), false, false)
+		return this._contract.commit(type, ethers.utils.parseUnits(amount.toString(), this.settlementTokenDecimals), false, false)
 	}
 
 
@@ -119,42 +119,35 @@ export default class Committer {
 	}> = async () => {
 		if (!this._contract) throw Error("Failed to update pending amounts: this._contract undefined")
 
+		// current update interval
+		const updateInterval = await this._contract.updateIntervalId();
+
 		const [
 			[
-				longBurnsFrontRunning,
-				longMintsFrontRunning,
-				shortBurnsFrontRunning,
-				shortMintsFrontRunning,
-				// shortBurnLongMintsFrontRunning,
-				// longBurnShortMintsFrontRunning,
-				// updateIntervalIdFrontRunning,
-			], 
-			[
-				longBurns,
-				longMints,
-				shortBurns,
-				shortMints,
-			// _shortBurnLongMints,
-			// _longBurnShortMints,
-			// _updateIntervalId,
-			]	
-		] = await this._contract.getPendingCommits().catch((error) => {
+				pendingLongMintSettlement,
+				_, // pendingLongBurnTokens
+				pendingShortMintSettlement
+			],
+			pendingLongBurnTokens,
+			pendingShortBurnTokens,
+		] = await Promise.all([
+			this._contract.totalPoolCommitments(updateInterval),
+			this._contract.pendingLongBurnPoolTokens(),
+			this._contract.pendingShortBurnPoolTokens(),
+		]).catch((error) => {
 			throw Error("Failed to update pending amounts: " + error?.message)
 		})
 
-		const decimals = this.quoteTokenDecimals;
+		const decimals = this.settlementTokenDecimals;
+
 		return ({
 			pendingLong: {
-				mint: new BigNumber(ethers.utils.formatUnits(longMints ?? 0, decimals))
-					.plus(new BigNumber(ethers.utils.formatUnits(longBurnsFrontRunning ?? 0, decimals))),
-				burn: new BigNumber(ethers.utils.formatUnits(longBurns ?? 0, decimals))
-					.plus(new BigNumber(ethers.utils.formatUnits(longMintsFrontRunning ?? 0, decimals))),
+				mint: new BigNumber(ethers.utils.formatUnits(pendingLongMintSettlement ?? 0, decimals)),
+				burn: new BigNumber(ethers.utils.formatUnits(pendingLongBurnTokens ?? 0, decimals))
 			},
 			pendingShort: {
-				mint: new BigNumber(ethers.utils.formatUnits(shortMints ?? 0, decimals))
-					.plus(new BigNumber(ethers.utils.formatUnits(shortMintsFrontRunning ?? 0, decimals))),
-				burn: new BigNumber(ethers.utils.formatUnits(shortBurns ?? 0, decimals))
-					.plus(new BigNumber(ethers.utils.formatUnits(shortBurnsFrontRunning ?? 0, decimals))),
+				mint: new BigNumber(ethers.utils.formatUnits(pendingShortMintSettlement ?? 0, decimals)),
+				burn: new BigNumber(ethers.utils.formatUnits(pendingShortBurnTokens ?? 0, decimals))
 			}
 		})
 	}
