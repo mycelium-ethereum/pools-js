@@ -44,7 +44,7 @@ interface TestConfig {
 	frontRunningInterval: number;
 	longToken: StaticTokenInfo;
 	shortToken: StaticTokenInfo;
-	quoteToken: StaticTokenInfo;
+	settlementToken: StaticTokenInfo;
 	lastPriceTimestamp: number;
 	lastPrice: number;
 	shortBalance: number;
@@ -73,7 +73,7 @@ const poolConfig: TestConfig = {
 		symbol: '3S-ETH/USD',
 		decimals: USDC_TOKEN_DECIMALS,
 	},
-	quoteToken: USDC,
+	settlementToken: USDC,
 	lastPriceTimestamp: expected.lastPriceTimestamp,
 	lastPrice: utils.parseEther(expected.lastPrice.toString()),
 	shortBalance: utils.parseUnits(expected.shortBalance.toString(), USDC.decimals),
@@ -121,7 +121,7 @@ const mockPool = {
 	frontRunningInterval: () => Promise.resolve( poolConfig.frontRunningInterval),
 	poolName: () => Promise.resolve( poolConfig.name),
 	tokens: (num: number) => Promise.resolve(num === 0 ? poolConfig.longToken.address : poolConfig.shortToken.address),
-	quoteToken: () => Promise.resolve( poolConfig.quoteToken.address),
+	settlementToken: () => Promise.resolve( poolConfig.settlementToken.address),
 
 	// keeper functions
 	executionPrice: () => Promise.resolve( poolConfig.lastPrice)
@@ -135,7 +135,7 @@ beforeEach(() => {
 	}))
 	// @ts-ignore
 	Token.Create.mockImplementation(() => ({
-		decimals: poolConfig.quoteToken.decimals
+		decimals: poolConfig.settlementToken.decimals
 	}))
 })
 
