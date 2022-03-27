@@ -8,10 +8,6 @@ import { CommitEnum, IContract, PendingAmounts } from "../types";
  */
 export interface IPoolCommitter extends IContract {
 	quoteTokenDecimals: number;
-	/**
-	 * Minimum commit size can be passed in as a props, otherwise, it is instantiated by fetching it from the PoolCommitter contract
-	 */
-	minimumCommitSize?: number;
 }
 
 export const defaultCommitter = {
@@ -24,7 +20,6 @@ export const defaultCommitter = {
 		burn: new BigNumber(0),
 	},
 	quoteTokenDecimals: 18,
-	minimumCommitSize: new BigNumber(0)
 } as const
 
 /**
@@ -36,16 +31,14 @@ export const defaultCommitter = {
 export default class Committer {
 	_contract?: PoolCommitter;
 	address: string;
-	provider: ethers.providers.Provider | ethers.Signer;
+	provider: ethers.providers.Provider | ethers.Signer | undefined;
 	quoteTokenDecimals: number;
     pendingLong: PendingAmounts;
     pendingShort: PendingAmounts;
-    minimumCommitSize: BigNumber;
 
 	private constructor () {
 		// these all need to be ovverridden in the init function
 		this.address = '';
-		this.provider = new ethers.providers.JsonRpcProvider('');
 		this.pendingLong = {
 			...defaultCommitter.pendingLong
 		} 
@@ -53,7 +46,6 @@ export default class Committer {
 			...defaultCommitter.pendingShort
 		}
 		this.quoteTokenDecimals = defaultCommitter.quoteTokenDecimals;
-		this.minimumCommitSize = defaultCommitter.minimumCommitSize
 	}
 
 	/**
@@ -80,7 +72,7 @@ export default class Committer {
 	 * Private initialisation function called in {@link Committer.Create}
 	 * @param committerInfo {@link IPoolCommitter | IPoolCommitter interface props}
 	 */
-	private init: (commitInfo: IPoolCommitter) => void = async (commitInfo) => {
+	private init: (commitInfo: IPoolCommitter) => Promise<void> = async (commitInfo) => {
 		this.provider = commitInfo.provider;
 		this.address = commitInfo.address;
 		this.quoteTokenDecimals = commitInfo.quoteTokenDecimals;
@@ -91,20 +83,15 @@ export default class Committer {
 		)
 		this._contract = contract;
 
-		const providedMinCommitSize = !!commitInfo?.minimumCommitSize;
-
-		const [
-			minimumCommitSize,
-		] = await Promise.all([
-			providedMinCommitSize ? ethers.BigNumber.from(commitInfo.minimumCommitSize) : contract.minimumCommitSize(),
-			this.fetchAllShadowPools()
-		]).catch((error) => {
-				throw Error(
-					"Failed to initialise committer: " + error?.message
-				)
-			})
-		// its unlikely that this will need to be refetched from the contracts
-		this.minimumCommitSize = new BigNumber(minimumCommitSize.toString());
+		try {
+			const { pendingLong, pendingShort } = await this.fetchAllShadowPools();
+			this.pendingShort = pendingShort;
+			this.pendingLong = pendingLong;
+		} catch(error) {
+			throw Error(
+				"Failed to initialise committer: " + error
+			)
+		}
 	}
 
 	/**
@@ -115,43 +102,11 @@ export default class Committer {
 	 */
 	public commit: (type: CommitEnum, amount: number | BigNumber) => Promise<ethers.ContractTransaction> = (type, amount) => {
 		if (!this._contract) throw Error("Failed to commit: this._contract undefined")
-		return this._contract.commit(type, ethers.utils.parseUnits(amount.toString(), this.quoteTokenDecimals))
+		// TODO allow from aggregate balance and auto claim
+		return this._contract.commit(type, ethers.utils.parseUnits(amount.toString(), this.quoteTokenDecimals), false, false)
 	}
 
 
-	/**
-	 * Updates a specific shadow pools balance.
-	 * This functions returns the amount as well as setting its internal
-	 * 	store.
-	 * @param shadowPool id identifier of the shadow pool. 1 of 4
-	 * 	values being (0, 1, 2, 3) => (shortMint, shortBurn, longMint, longBurn)
-	 * @returns the refetched amount of the shadow pool
-	 */
-	public fetchShadowPool: (shadowPool: CommitEnum) => Promise<BigNumber> = async (shadowPool) => {
-		if (!this._contract) throw Error("Failed to update pending amount: this._contract undefined")
-
-		const amount_ = await (this._contract.shadowPools(shadowPool).catch((error) => {
-			throw Error("Failed to update pending amount: " + error?.message)
-		}));
-		const amount = new BigNumber(ethers.utils.formatUnits(amount_, this.quoteTokenDecimals));
-		switch (shadowPool) {
-			case CommitEnum.longBurn:
-				this.pendingLong.burn = amount; 
-				return amount
-			case CommitEnum.longMint:
-				this.pendingLong.mint = amount; 
-				return amount
-			case CommitEnum.shortBurn:
-				this.pendingShort.burn = amount; 
-				return amount
-			case CommitEnum.shortMint:
-				this.pendingShort.mint = amount; 
-				return amount
-			default:
-				return new BigNumber(0)
-		}
-
-	}
 	/**
 	 * Updates all shadow pool balances.
 	 * Calls {@linkcode Committer.fetchShadowPool} for each of the commit types.
@@ -165,27 +120,41 @@ export default class Committer {
 		if (!this._contract) throw Error("Failed to update pending amounts: this._contract undefined")
 
 		const [
-			longBurns,
-			longMints,
-			shortBurns,
-			shortMints
-		] = await Promise.all([
-			this.fetchShadowPool(CommitEnum.longBurn),
-			this.fetchShadowPool(CommitEnum.longMint),
-			this.fetchShadowPool(CommitEnum.shortBurn),
-			this.fetchShadowPool(CommitEnum.shortMint)
-		]).catch((error) => {
+			[
+				longBurnsFrontRunning,
+				longMintsFrontRunning,
+				shortBurnsFrontRunning,
+				shortMintsFrontRunning,
+				// shortBurnLongMintsFrontRunning,
+				// longBurnShortMintsFrontRunning,
+				// updateIntervalIdFrontRunning,
+			], 
+			[
+				longBurns,
+				longMints,
+				shortBurns,
+				shortMints,
+			// _shortBurnLongMints,
+			// _longBurnShortMints,
+			// _updateIntervalId,
+			]	
+		] = await this._contract.getPendingCommits().catch((error) => {
 			throw Error("Failed to update pending amounts: " + error?.message)
 		})
 
+		const decimals = this.quoteTokenDecimals;
 		return ({
 			pendingLong: {
-				mint: longMints,
-				burn: longBurns
+				mint: new BigNumber(ethers.utils.formatUnits(longMints ?? 0, decimals))
+					.plus(new BigNumber(ethers.utils.formatUnits(longBurnsFrontRunning ?? 0, decimals))),
+				burn: new BigNumber(ethers.utils.formatUnits(longBurns ?? 0, decimals))
+					.plus(new BigNumber(ethers.utils.formatUnits(longMintsFrontRunning ?? 0, decimals))),
 			},
 			pendingShort: {
-				mint: shortMints,
-				burn: shortBurns 
+				mint: new BigNumber(ethers.utils.formatUnits(shortMints ?? 0, decimals))
+					.plus(new BigNumber(ethers.utils.formatUnits(shortMintsFrontRunning ?? 0, decimals))),
+				burn: new BigNumber(ethers.utils.formatUnits(shortBurns ?? 0, decimals))
+					.plus(new BigNumber(ethers.utils.formatUnits(shortBurnsFrontRunning ?? 0, decimals))),
 			}
 		})
 	}
