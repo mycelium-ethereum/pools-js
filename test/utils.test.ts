@@ -450,16 +450,16 @@ describe('calcAPY', () => {
 
 describe('getExpectedExecutionTimestamp', () => {
   describe('frontRunningInterval < updateInerval', () => {
-    let frontRunningInterval = FIVE_MINUTES;
-    let updateInterval = ONE_HOUR;
-    let now = Date.now() / 1000; // put into seconds
-    let commitCreated = now;
+    const frontRunningInterval = FIVE_MINUTES;
+    const updateInterval = ONE_HOUR;
+    const now = Date.now() / 1000; // put into seconds
+    const commitCreated = now;
 
     it('Commit during regular updateInerval', () => {
-      let lastUpdate = now - 10; // pool was just updated
-      let nextUpdate = lastUpdate + updateInterval;
+      const lastUpdate = now - 10; // pool was just updated
+      const nextUpdate = lastUpdate + updateInterval;
 
-      let expectedExeuction = getExpectedExecutionTimestamp(
+      const expectedExeuction = getExpectedExecutionTimestamp(
         frontRunningInterval,
         updateInterval,
         lastUpdate,
@@ -468,10 +468,10 @@ describe('getExpectedExecutionTimestamp', () => {
       expect(expectedExeuction).to.be.equal(nextUpdate);
     });
     it('Commit during frontRunningInterval', () => {
-      let lastUpdate = now - updateInterval + 10; // Pool is 10 seconds from being upkeepable
-      let nextUpdate = lastUpdate + updateInterval;
+      const lastUpdate = now - updateInterval + 10; // Pool is 10 seconds from being upkeepable
+      const nextUpdate = lastUpdate + updateInterval;
 
-      let expectedExeuction = getExpectedExecutionTimestamp(
+      const expectedExeuction = getExpectedExecutionTimestamp(
         frontRunningInterval,
         updateInterval,
         lastUpdate,
@@ -482,14 +482,14 @@ describe('getExpectedExecutionTimestamp', () => {
     });
   }),
 
-  describe('frontRunningInterval < updateInerval', () => {
-    let frontRunningInterval = ONE_HOUR;
+  describe('frontRunningInterval > updateInerval', () => {
+    const frontRunningInterval = ONE_HOUR;
     let updateInterval = FIVE_MINUTES;
-    let now = Date.now() / 1000; // put into seconds
-    let commitCreated = now;
+    const now = Date.now() / 1000; // put into seconds
+    const commitCreated = now;
 
     it('Commit during regular updateInerval', () => {
-      let lastUpdate = now - 10; // pool was just updated
+      const lastUpdate = now - 10; // pool was just updated
       let nextUpdate = lastUpdate + updateInterval;
 
       let expectedExeuction = getExpectedExecutionTimestamp(
@@ -525,7 +525,7 @@ describe('getExpectedExecutionTimestamp', () => {
 
     });
     it('Commit close to updateInterval', () => {
-      let lastUpdate = now - updateInterval + 10; // Pool is 10 seconds from being upkeepable
+      const lastUpdate = now - updateInterval + 10; // Pool is 10 seconds from being upkeepable
       let nextUpdate = lastUpdate + updateInterval;
 
       let expectedExeuction = getExpectedExecutionTimestamp(
@@ -560,17 +560,17 @@ describe('getExpectedExecutionTimestamp', () => {
     });
   }),
   describe('frontRunningInterval == updateInerval', () => {
-    let frontRunningInterval = FIVE_MINUTES;
-    let updateInterval = FIVE_MINUTES;
-    let now = Date.now() / 1000; // put into seconds
-    let commitCreated = now;
+    const frontRunningInterval = FIVE_MINUTES;
+    const updateInterval = FIVE_MINUTES;
+    const now = Date.now() / 1000; // put into seconds
+    const commitCreated = now;
 
     // will always be included next update interval
     it('Commit during regular updateInerval', () => {
-      let lastUpdate = now - 10; // pool was just updated
-      let nextUpdate = lastUpdate + updateInterval;
+      const lastUpdate = now - 10; // pool was just updated
+      const nextUpdate = lastUpdate + updateInterval;
 
-      let expectedExeuction = getExpectedExecutionTimestamp(
+      const expectedExeuction = getExpectedExecutionTimestamp(
         frontRunningInterval,
         updateInterval,
         lastUpdate,
@@ -579,9 +579,9 @@ describe('getExpectedExecutionTimestamp', () => {
       expect(expectedExeuction).to.be.equal(nextUpdate + updateInterval);
     });
     it('Commit close to updateInterval', () => {
-      let lastUpdate = now - updateInterval + 10; // Pool is 10 seconds from being upkeepable
-      let nextUpdate = lastUpdate + updateInterval;
-      let expectedExeuction = getExpectedExecutionTimestamp(
+      const lastUpdate = now - updateInterval + 10; // Pool is 10 seconds from being upkeepable
+      const nextUpdate = lastUpdate + updateInterval;
+      const expectedExeuction = getExpectedExecutionTimestamp(
         frontRunningInterval,
         updateInterval,
         lastUpdate,
