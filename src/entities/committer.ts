@@ -140,6 +140,7 @@ export default class Committer {
 		const [
 			[
 				pendingLongMintSettlement,
+				// eslint-disable-next-line
 				_, // pendingLongBurnTokens
 				pendingShortMintSettlement
 			],
