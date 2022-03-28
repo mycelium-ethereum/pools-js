@@ -1559,12 +1559,10 @@
   resolved "https://registry.yarnpkg.com/@tootallnate/once/-/once-1.1.2.tgz#ccb91445360179a04e7fe6aff78c00ffc1eeaf82"
   integrity sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==
 
-"@tracer-protocol/perpetual-pools-contracts@^2.0.2":
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/@tracer-protocol/perpetual-pools-contracts/-/perpetual-pools-contracts-2.0.2.tgz#eb2ab0878b68eadb80faa607529c59f45f40a5a6"
-  integrity sha512-TB3+ngOc8C3XLOeEMYzyec2Kdn8wIVzlqsv8+PpEfDcpO+8yYxPZpc0XSfTzmuqdMbRTTaRAbGumvMmNRO1vSw==
-  dependencies:
-    ethers "^5.4.0"
+"@tracer-protocol/perpetual-pools-contracts@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@tracer-protocol/perpetual-pools-contracts/-/perpetual-pools-contracts-1.1.0.tgz#d7e515a355b5165a0747e323384d84d0ca3f3cd1"
+  integrity sha512-scXRawfjKgMfU16xbTpP2z468O2vQBJ8Ab7pLvWjAMBTCJisbbK1iRH2DJ5aBPnVGzDiuMFtX/8U840otps09A==
 
 "@tsconfig/node10@^1.0.7":
   version "1.0.8"
@@ -2542,7 +2540,7 @@ esutils@^2.0.2:
   resolved "https://registry.yarnpkg.com/esutils/-/esutils-2.0.3.tgz#74d2eb4de0b8da1293711910d50775b9b710ef64"
   integrity sha512-kVscqXk4OCp68SZ0dkgEKVi6/8ij300KBWTJq32P/dYeWTSwK41WyTxalN1eRmA5Z9UU/LX9D7FWSmV9SAYx6g==
 
-ethers@^5.4.0, ethers@^5.6.1:
+ethers@^5.6.1:
   version "5.6.1"
   resolved "https://registry.yarnpkg.com/ethers/-/ethers-5.6.1.tgz#a56cd67f1595b745dc3dde0ccf2b5de53a41a6d0"
   integrity sha512-qtl/2W+dwmUa5Z3JqwsbV3JEBZZHNARe5K/A2ePcNAuhJYnEKIgGOT/O9ouPwBijSqVoQnmQMzi5D48LFNOY2A==
