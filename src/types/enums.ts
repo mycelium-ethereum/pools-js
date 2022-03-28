@@ -11,8 +11,32 @@ export enum CommitEnum {
     shortBurnLongMint= 5 // Burn Short tokens, then instantly mint in same upkeep
 }
 
-// side types
+/**
+ * Simpler enum that just relates to the category of commit 
+ * @enum
+ */
+export enum CommitActionEnum {
+    mint = 0,
+    burn = 1,
+    flip = 2,
+}
+
+/**
+ * Balance types since users can have some balance in escrow
+ *  or use the balance from their wallet
+ *  @enum
+ */
+export enum BalanceTypeEnum {
+    wallet = 0,
+    escrow = 1,
+}
+
+/**
+ * @enum
+ */
 export enum SideEnum {
     long = 0,
     short = 1,
 }
+
+

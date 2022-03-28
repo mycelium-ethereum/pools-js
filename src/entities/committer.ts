@@ -2,6 +2,7 @@ import { PoolCommitter, PoolCommitter__factory } from "@tracer-protocol/perpetua
 import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
 import { CommitEnum, IContract, PendingAmounts } from "../types";
+import {encodeCommitParams} from "../utils/helpers";
 
 /**
  * PoolCommitter class constructor inputs
@@ -98,12 +99,26 @@ export default class Committer {
 	 * Submits a commit
 	 * @param type 1 of 4 commit types. These values are (0, 1, 2, 3) => (shortMint, shortBurn, longMint, longBurn)
 	 * @param amount either a number or BigNumber representing the amount of tokens
+	 * @param payForClaim
+	 * @param fromAggregateBalances is true when the user wants to pay from balances yet to be claimed,
+	 *	false if they want to use the balances within their wallet
 	 * 	to be committed if burning, or the amount of quote token to use to mint new tokens
 	 */
-	public commit: (type: CommitEnum, amount: number | BigNumber) => Promise<ethers.ContractTransaction> = (type, amount) => {
+	public commit: (
+		type: CommitEnum, 
+		amount: number | BigNumber,
+		payForClaim: boolean,
+		fromAggregateBalances: boolean
+	) => Promise<ethers.ContractTransaction> = (type, amount, payForClaim, fromAggregateBalances) => {
 		if (!this._contract) throw Error("Failed to commit: this._contract undefined")
-		// TODO allow from aggregate balance and auto claim
-		return this._contract.commit(type, ethers.utils.parseUnits(amount.toString(), this.settlementTokenDecimals), false, false)
+		return this._contract.commit(
+			encodeCommitParams(
+				payForClaim,
+				fromAggregateBalances,
+				type,
+				ethers.utils.parseUnits(amount.toString(), this.settlementTokenDecimals)
+			)
+		)
 	}
 
 
