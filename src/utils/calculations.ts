@@ -276,3 +276,44 @@ export const calcBptTokenSpotPrice: (
 
     return (numerator.div(denominator)).times(swapFeeMultiplier);
 }
+
+/**
+ * Calculate the expected execution given a commit timestamp, the frontRunningInterval, updateInterval and lastUpdate.
+ *  This is just an estimate as there is a slight delay between possibleExecution and finalExecutionTimestamp
+ */
+export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updateInterval: number, lastUpdate: number, commitCreated: number) => number = (
+    frontRunningInterval, updateInterval,
+    lastUpdate, commitCreated
+) => {
+    const nextRebalance = lastUpdate + updateInterval;
+
+    // for frontRunningInterval <= updateInterval this will be 1
+    //  anything else will give us how many intervals we need to wait
+    //  such that waitingTime >= frontRunningInterval
+    let numberOfUpdateInteravalsToWait = Math.ceil(frontRunningInterval / updateInterval);
+
+    // if numberOfUpdateInteravalsToWait is 1 then frontRunningInterval <= updateInterval
+    //  for frontRunningInterval < updateInterval 
+    //   set numberOfWaitIntervals to 0 since there is potential it CAN be included next updateInterval
+    //  for frontRunningInterval === updateInterval
+    //   the commit will be appropriately caught by the condition
+    //      (potentialExecutionTime - commitCreated) < frontRunningInterval
+    //      = nextRebalance - commitCreated < frontRunningInterval
+    //      = lastUpdate + updateInterval - commitCreated < frontRunningInterval
+    //      = lastUpdate + updateInterval < frontRunningInterval + commitCreated
+    //      = lastUpdate + updateInterval < updateInterval + commitCreated
+    //      = lastUpdate < commitCreated
+    //   and will always be included in the following updateInterval unless lastUpdate < commitCreated
+    if (numberOfUpdateInteravalsToWait === 1) {
+        numberOfUpdateInteravalsToWait = 0
+    }
+
+    const potentialExecutionTime = nextRebalance + (numberOfUpdateInteravalsToWait * updateInterval);
+
+    // only possible if frontRunningInterval < updateInterval 
+    if ((potentialExecutionTime - commitCreated) < frontRunningInterval) { // commit was created during frontRunningInterval
+        return potentialExecutionTime + updateInterval // commit will be executed in the following updateInterval
+    } else {
+        return potentialExecutionTime;
+    }
+}

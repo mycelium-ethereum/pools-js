@@ -13,10 +13,7 @@ import Pool from '../src/entities/pool'
 import PoolToken from '../src/entities/poolToken';
 import Token from '../src/entities/token';
 import { StaticTokenInfo } from '../src/types';
-
-const ONE_HOUR = 3600; // seconds
-const FIVE_MINUTES = 300; // seconds
-const USDC_TOKEN_DECIMALS = 6;
+import { ONE_HOUR, FIVE_MINUTES, USDC_TOKEN_DECIMALS } from './constants';
 
 const expected = {
 	longBalance: new BigNumber(200),
