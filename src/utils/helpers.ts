@@ -1,4 +1,4 @@
-import {ethers} from "ethers";
+import { ethers } from "ethers";
 import { CommitEnum } from "..";
 
 const NUM_PADDING_REQUIRED = 26;

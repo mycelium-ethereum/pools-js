@@ -2,7 +2,7 @@ import { PoolCommitter, PoolCommitter__factory } from "@tracer-protocol/perpetua
 import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
 import { CommitEnum, IContract, PendingAmounts } from "../types";
-import {encodeCommitParams} from "../utils/helpers";
+import { encodeCommitParams } from "../utils/helpers";
 
 /**
  * PoolCommitter class constructor inputs
