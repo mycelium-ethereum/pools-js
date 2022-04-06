@@ -287,7 +287,7 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
 ) => {
     const nextRebalance = lastUpdate + updateInterval;
 
-    let timeSinceCommit = lastUpdate - commitCreated;
+    const timeSinceCommit = lastUpdate - commitCreated;
     let updateIntervalsPassed = timeSinceCommit > 0 ? Math.ceil(timeSinceCommit / updateInterval) : 0; 
     if (updateIntervalsPassed === 1) {
         updateIntervalsPassed = 0;

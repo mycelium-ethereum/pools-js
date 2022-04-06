@@ -523,11 +523,11 @@ describe('getExpectedExecutionTimestamp', () => {
     const frontRunningInterval = ONE_HOUR;
     let updateInterval = FIVE_MINUTES;
     const now = Math.floor(Date.now() / 1000); // put into seconds
-    let commitCreated = now;
+    const commitCreated = now;
 
     it('oldCommits', () => {
       let lastUpdate = now - 10; // pool was just updated
-      let oldCommit = commitCreated - (12 * updateInterval)
+      const oldCommit = commitCreated - (12 * updateInterval)
       let nextUpdate = lastUpdate + updateInterval;
 
       let expectedExeuction = getExpectedExecutionTimestamp(
@@ -598,7 +598,7 @@ describe('getExpectedExecutionTimestamp', () => {
     it('Commit close to updateInterval', () => {
       const lastUpdate = now - updateInterval + 10; // Pool is 10 seconds from being upkeepable
       let nextUpdate = lastUpdate + updateInterval;
-      let oldCommit = commitCreated - (2 * updateInterval)
+      const oldCommit = commitCreated - (2 * updateInterval)
 
       let expectedExeuction = getExpectedExecutionTimestamp(
         frontRunningInterval,
