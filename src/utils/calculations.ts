@@ -287,10 +287,16 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
 ) => {
     const nextRebalance = lastUpdate + updateInterval;
 
+    let timeSinceCommit = lastUpdate - commitCreated;
+    let updateIntervalsPassed = timeSinceCommit > 0 ? Math.ceil(timeSinceCommit / updateInterval) : 0; 
+    if (updateIntervalsPassed === 1) {
+        updateIntervalsPassed = 0;
+    }
+
     // for frontRunningInterval <= updateInterval this will be 1
     //  anything else will give us how many intervals we need to wait
     //  such that waitingTime >= frontRunningInterval
-    let numberOfUpdateInteravalsToWait = Math.ceil(frontRunningInterval / updateInterval);
+    let numberOfUpdateInteravalsToWait = Math.ceil(frontRunningInterval / updateInterval) - updateIntervalsPassed;
 
     // if numberOfUpdateInteravalsToWait is 1 then frontRunningInterval <= updateInterval
     //  for frontRunningInterval < updateInterval 
