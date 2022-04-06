@@ -497,6 +497,10 @@ describe('getExpectedExecutionTimestamp', () => {
       )
       expect(expectedExeuction).to.be.equal(lastUpdate - updateInterval);
 
+      //                          | now
+      //                           | lastUpdate
+      //                      | updateBeforeThat
+      //                | commitCreated
       lastUpdate = now + 1;
       nextUpdate = lastUpdate + updateInterval;
 
@@ -506,7 +510,7 @@ describe('getExpectedExecutionTimestamp', () => {
         lastUpdate,
         oldCommit 
       )
-      expect(expectedExeuction).to.be.equal(nextUpdate - 2 * updateInterval);
+      expect(expectedExeuction).to.be.equal(lastUpdate - updateInterval);
 
       oldCommit = commitCreated - updateInterval;
       expectedExeuction = getExpectedExecutionTimestamp(
