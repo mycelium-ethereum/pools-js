@@ -287,7 +287,7 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
 ) => {
     const nextRebalance = lastUpdate + updateInterval;
 
-    if (frontRunningInterval < updateInterval) {
+    if (frontRunningInterval <= updateInterval) {
         if (commitCreated <= lastUpdate) {
             // need to check if the commit should have been committed earlier
             const commitSecondsBeforeLastUpdate = lastUpdate - commitCreated;
@@ -301,16 +301,14 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
                 // less than an updateInterval include in next rebalance
                 return nextRebalance;
             }
-        } else {
+        } else { // common case committed during interval check whether its in front runningInterval
+            // frontRunningInterval === updateInterval will always get caught by this
             if (commitCreated >= (nextRebalance - frontRunningInterval)) {
                 return nextRebalance + updateInterval;
             } else {
                 return nextRebalance;
             }
         }
-    } else if (frontRunningInterval === updateInterval) {
-        // always return rebalance after nextRebalance
-        return nextRebalance + updateInterval;
     } else { // frontRunningInterval > updateInterval
         let updatesWithinFrontRunningInterval = Math.ceil(frontRunningInterval / updateInterval);
         if (updatesWithinFrontRunningInterval === 1) { // frontRunningInterval === updateInterval
