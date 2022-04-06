@@ -287,39 +287,48 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
 ) => {
     const nextRebalance = lastUpdate + updateInterval;
 
-    const timeSinceCommit = lastUpdate - commitCreated;
-    let updateIntervalsPassed = timeSinceCommit > 0 ? Math.ceil(timeSinceCommit / updateInterval) : 0; 
-    if (updateIntervalsPassed === 1) {
-        updateIntervalsPassed = 0;
-    }
-
-    // for frontRunningInterval <= updateInterval this will be 1
-    //  anything else will give us how many intervals we need to wait
-    //  such that waitingTime >= frontRunningInterval
-    let updateIntervalsInFrontRunningInterval = Math.ceil(frontRunningInterval / updateInterval);
-
-    // if numberOfUpdateInteravalsToWait is 1 then frontRunningInterval <= updateInterval
-    //  for frontRunningInterval < updateInterval 
-    //   set numberOfWaitIntervals to 0 since there is potential it CAN be included next updateInterval
-    //  for frontRunningInterval === updateInterval
-    //   the commit will be appropriately caught by the condition
-    //      (potentialExecutionTime - commitCreated) < frontRunningInterval
-    //      = nextRebalance - commitCreated < frontRunningInterval
-    //      = lastUpdate + updateInterval - commitCreated < frontRunningInterval
-    //      = lastUpdate + updateInterval < frontRunningInterval + commitCreated
-    //      = lastUpdate + updateInterval < updateInterval + commitCreated
-    //      = lastUpdate < commitCreated
-    //   and will always be included in the following updateInterval unless lastUpdate < commitCreated
-    if (frontRunningInterval <= updateInterval) {
-        updateIntervalsInFrontRunningInterval = 0
-    }
-
-    const potentialExecutionTime = nextRebalance + ((updateIntervalsInFrontRunningInterval - updateIntervalsPassed) * updateInterval);
-
-    // only possible if frontRunningInterval < updateInterval 
-    if ((potentialExecutionTime - commitCreated) < frontRunningInterval) { // commit was created during frontRunningInterval
-        return potentialExecutionTime + updateInterval // commit will be executed in the following updateInterval
-    } else {
-        return potentialExecutionTime;
+    if (frontRunningInterval < updateInterval) {
+        if (commitCreated <= lastUpdate) {
+            // need to check if the commit should have been committed earlier
+            const commitSecondsBeforeLastUpdate = lastUpdate - commitCreated;
+            if (commitSecondsBeforeLastUpdate > updateInterval) { // has atleast 1 rebalance
+                // with the above check its known fullUpdateIntervalsPassed >= 1
+                // look backwards from nextRebalance to which interval could have included the commit
+                const fullUpdateIntervalsPassed = Math.floor(commitSecondsBeforeLastUpdate / updateInterval);
+                return nextRebalance - (updateInterval * fullUpdateIntervalsPassed);
+            } else {
+                // commitSecondsBeforeLastUpdate === updateInterval it has been 1 whole updateInterval include in next rebalance
+                // less than an updateInterval include in next rebalance
+                return nextRebalance;
+            }
+        } else {
+            if (commitCreated >= (nextRebalance - frontRunningInterval)) {
+                return nextRebalance + updateInterval;
+            } else {
+                return nextRebalance;
+            }
+        }
+    } else if (frontRunningInterval === updateInterval) {
+        // always return rebalance after nextRebalance
+        return nextRebalance + updateInterval;
+    } else { // frontRunningInterval > updateInterval
+        let updatesWithinFrontRunningInterval = Math.ceil(frontRunningInterval / updateInterval);
+        if (updatesWithinFrontRunningInterval === 1) { // frontRunningInterval === updateInterval
+            updatesWithinFrontRunningInterval = 0;
+        }
+        // this will be negative if commitCreated > lastUpdate
+        const commitSecondsBeforeLastUpdate = lastUpdate - commitCreated;
+        if (commitSecondsBeforeLastUpdate > updateInterval) { // has been multiple rebalances
+            const updateIntervalsPassed = Math.ceil(commitSecondsBeforeLastUpdate / updateInterval);
+            const potentialExecutionTime = nextRebalance + ((updatesWithinFrontRunningInterval - updateIntervalsPassed) * updateInterval);
+            return potentialExecutionTime;
+        } else if (commitSecondsBeforeLastUpdate === updateInterval) { // 1 interval has passed
+            // returns nextRebalance + amount of seconds 
+            return nextRebalance + ((updatesWithinFrontRunningInterval - 1) * updateInterval);
+        } else { 
+            // commit was created after lastUpdate
+            // have to wait the full time
+            return nextRebalance + (updatesWithinFrontRunningInterval * updateInterval);
+        }
     }
 }
