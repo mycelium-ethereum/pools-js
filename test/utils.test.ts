@@ -512,6 +512,10 @@ describe('getExpectedExecutionTimestamp', () => {
       )
       expect(expectedExeuction).to.be.equal(lastUpdate - updateInterval);
 
+      //                          | now
+      //                           | lastUpdate
+      //                        | updateBeforeThat
+      //                       |commitCreated
       oldCommit = commitCreated - updateInterval;
       expectedExeuction = getExpectedExecutionTimestamp(
         frontRunningInterval,
@@ -519,7 +523,7 @@ describe('getExpectedExecutionTimestamp', () => {
         lastUpdate,
         oldCommit 
       )
-      expect(expectedExeuction).to.be.equal(nextUpdate - updateInterval); // should have already been executed
+      expect(expectedExeuction).to.be.equal(lastUpdate); // should have already been executed
     })
   }),
 
