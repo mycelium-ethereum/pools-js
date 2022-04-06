@@ -483,8 +483,8 @@ describe('getExpectedExecutionTimestamp', () => {
     it('oldCommits', () => {
       //                          | now
       //                          | lastUpdate
-      //                     | updateBeforeThat
-      //               | commitCreated
+      //                    | updateBeforeThat
+      //              | commitCreated
       let lastUpdate = now; // pool was just updated
       let oldCommit = commitCreated - (2 * updateInterval)
       let nextUpdate = lastUpdate + updateInterval;
@@ -498,7 +498,7 @@ describe('getExpectedExecutionTimestamp', () => {
       expect(expectedExeuction).to.be.equal(lastUpdate - updateInterval);
 
       //                          | now
-      //                           | lastUpdate
+      //                            | lastUpdate
       //                      | updateBeforeThat
       //                | commitCreated
       lastUpdate = now + 1;
@@ -513,9 +513,9 @@ describe('getExpectedExecutionTimestamp', () => {
       expect(expectedExeuction).to.be.equal(lastUpdate - updateInterval);
 
       //                          | now
-      //                           | lastUpdate
-      //                        | updateBeforeThat
-      //                       |commitCreated
+      //                            | lastUpdate
+      //                      | updateBeforeThat
+      //                |commitCreated
       oldCommit = commitCreated - updateInterval;
       expectedExeuction = getExpectedExecutionTimestamp(
         frontRunningInterval,
