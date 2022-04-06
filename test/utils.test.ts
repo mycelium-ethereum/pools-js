@@ -488,6 +488,41 @@ describe('getExpectedExecutionTimestamp', () => {
     const now = Math.floor(Date.now() / 1000); // put into seconds
     let commitCreated = now;
 
+    it('oldCommit should be included next update', () => {
+      let lastUpdate = now - 10; // pool was just updated
+      let oldCommit = commitCreated - (12 * updateInterval)
+      let nextUpdate = lastUpdate + updateInterval;
+
+      let expectedExeuction = getExpectedExecutionTimestamp(
+        frontRunningInterval,
+        updateInterval,
+        lastUpdate,
+        oldCommit 
+      )
+      expect(expectedExeuction).to.be.equal(nextUpdate);
+      lastUpdate = now;
+      nextUpdate = lastUpdate + updateInterval;
+
+      expectedExeuction = getExpectedExecutionTimestamp(
+        frontRunningInterval,
+        updateInterval,
+        lastUpdate,
+        oldCommit 
+      )
+      expect(expectedExeuction).to.be.equal(nextUpdate);
+
+      lastUpdate = now + 1;
+      nextUpdate = lastUpdate + updateInterval;
+      expectedExeuction = getExpectedExecutionTimestamp(
+        frontRunningInterval,
+        updateInterval,
+        lastUpdate,
+        oldCommit 
+      )
+      expect(expectedExeuction).to.be.equal(nextUpdate - updateInterval); // should have already been executed
+
+    })
+
     it('Commit during regular updateInerval', () => {
       const lastUpdate = now - 10; // pool was just updated
       let nextUpdate = lastUpdate + updateInterval;
@@ -584,6 +619,7 @@ describe('getExpectedExecutionTimestamp', () => {
       )
       expect(expectedExeuction).to.be.equal(nextUpdate + (10 * updateInterval));
     });
+
   }),
   describe('frontRunningInterval == updateInerval', () => {
     const frontRunningInterval = FIVE_MINUTES;
