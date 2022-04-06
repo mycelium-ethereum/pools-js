@@ -280,6 +280,8 @@ export const calcBptTokenSpotPrice: (
 /**
  * Calculate the expected execution given a commit timestamp, the frontRunningInterval, updateInterval and lastUpdate.
  *  This is just an estimate as there is a slight delay between possibleExecution and finalExecutionTimestamp
+ *  See https://github.com/tracer-protocol/pools-js/blob/updated-calc/src/utils/calculations.ts#L280-L332
+ *      for a long clearer sudo codish written version
  */
 export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updateInterval: number, lastUpdate: number, commitCreated: number) => number = (
     frontRunningInterval, updateInterval,
