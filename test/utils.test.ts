@@ -480,6 +480,43 @@ describe('getExpectedExecutionTimestamp', () => {
 
       expect(expectedExeuction).to.be.equal(nextUpdate + updateInterval);
     });
+    it('oldCommits', () => {
+      //                          | now
+      //                          | lastUpdate
+      //                     | updateBeforeThat
+      //               | commitCreated
+      let lastUpdate = now; // pool was just updated
+      let oldCommit = commitCreated - (2 * updateInterval)
+      let nextUpdate = lastUpdate + updateInterval;
+
+      let expectedExeuction = getExpectedExecutionTimestamp(
+        frontRunningInterval,
+        updateInterval,
+        lastUpdate,
+        oldCommit 
+      )
+      expect(expectedExeuction).to.be.equal(lastUpdate - updateInterval);
+
+      lastUpdate = now + 1;
+      nextUpdate = lastUpdate + updateInterval;
+
+      expectedExeuction = getExpectedExecutionTimestamp(
+        frontRunningInterval,
+        updateInterval,
+        lastUpdate,
+        oldCommit 
+      )
+      expect(expectedExeuction).to.be.equal(nextUpdate - 2 * updateInterval);
+
+      oldCommit = commitCreated - updateInterval;
+      expectedExeuction = getExpectedExecutionTimestamp(
+        frontRunningInterval,
+        updateInterval,
+        lastUpdate,
+        oldCommit 
+      )
+      expect(expectedExeuction).to.be.equal(nextUpdate - updateInterval); // should have already been executed
+    })
   }),
 
   describe('frontRunningInterval > updateInerval', () => {
@@ -488,7 +525,7 @@ describe('getExpectedExecutionTimestamp', () => {
     const now = Math.floor(Date.now() / 1000); // put into seconds
     let commitCreated = now;
 
-    it('oldCommit should be included next update', () => {
+    it('oldCommits', () => {
       let lastUpdate = now - 10; // pool was just updated
       let oldCommit = commitCreated - (12 * updateInterval)
       let nextUpdate = lastUpdate + updateInterval;
@@ -520,7 +557,6 @@ describe('getExpectedExecutionTimestamp', () => {
         oldCommit 
       )
       expect(expectedExeuction).to.be.equal(nextUpdate - updateInterval); // should have already been executed
-
     })
 
     it('Commit during regular updateInerval', () => {

@@ -296,7 +296,7 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
     // for frontRunningInterval <= updateInterval this will be 1
     //  anything else will give us how many intervals we need to wait
     //  such that waitingTime >= frontRunningInterval
-    let numberOfUpdateInteravalsToWait = Math.ceil(frontRunningInterval / updateInterval) - updateIntervalsPassed;
+    let updateIntervalsInFrontRunningInterval = Math.ceil(frontRunningInterval / updateInterval);
 
     // if numberOfUpdateInteravalsToWait is 1 then frontRunningInterval <= updateInterval
     //  for frontRunningInterval < updateInterval 
@@ -310,11 +310,11 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
     //      = lastUpdate + updateInterval < updateInterval + commitCreated
     //      = lastUpdate < commitCreated
     //   and will always be included in the following updateInterval unless lastUpdate < commitCreated
-    if (numberOfUpdateInteravalsToWait === 1) {
-        numberOfUpdateInteravalsToWait = 0
+    if (frontRunningInterval <= updateInterval) {
+        updateIntervalsInFrontRunningInterval = 0
     }
 
-    const potentialExecutionTime = nextRebalance + (numberOfUpdateInteravalsToWait * updateInterval);
+    const potentialExecutionTime = nextRebalance + ((updateIntervalsInFrontRunningInterval - updateIntervalsPassed) * updateInterval);
 
     // only possible if frontRunningInterval < updateInterval 
     if ((potentialExecutionTime - commitCreated) < frontRunningInterval) { // commit was created during frontRunningInterval
