@@ -233,8 +233,8 @@ export default class Pool {
 		this.updateInterval = new BigNumber(updateInterval);
 		this.frontRunningInterval = new BigNumber(frontRunningInterval);
 		this.lastUpdate = new BigNumber(lastUpdate.toString());
-
 		this.leverage = leverage;
+		this.oraclePriceTransformer = poolInfo.oraclePriceTransformer ?? movingAveragePriceTransformer
 	}
 
 	/**
