@@ -32,3 +32,68 @@ export type StaticTokenInfo = {
 
 type KnownNetworkKeys = keyof typeof NETWORKS;
 export type KnownNetwork = typeof NETWORKS[KnownNetworkKeys];
+
+export type TotalPoolCommitments = [
+  ethers.BigNumber,
+  ethers.BigNumber,
+  ethers.BigNumber,
+  ethers.BigNumber,
+  ethers.BigNumber,
+  ethers.BigNumber,
+  ethers.BigNumber
+] & {
+  longMintSettlement: ethers.BigNumber;
+  longBurnPoolTokens: ethers.BigNumber;
+  shortMintSettlement: ethers.BigNumber;
+  shortBurnPoolTokens: ethers.BigNumber;
+  shortBurnLongMintPoolTokens: ethers.BigNumber;
+  longBurnShortMintPoolTokens: ethers.BigNumber;
+  updateIntervalId: ethers.BigNumber;
+}
+
+export type TotalPoolCommitmentsBN = {
+  longMintSettlement: BigNumber;
+  longBurnPoolTokens: BigNumber;
+  shortMintSettlement: BigNumber;
+  shortBurnPoolTokens: BigNumber;
+  shortBurnLongMintPoolTokens: BigNumber;
+  longBurnShortMintPoolTokens: BigNumber;
+  updateIntervalId: BigNumber;
+}
+
+export type OraclePriceTransformer = (lastPrice: BigNumber, currentPrice: BigNumber) => BigNumber
+
+export type PoolStatePreviewInputs = {
+  leverage: number,
+  longBalance: BigNumber,
+  shortBalance: BigNumber,
+  longTokenSupply: BigNumber,
+  shortTokenSupply: BigNumber,
+  pendingLongTokenBurn: BigNumber,
+  pendingShortTokenBurn: BigNumber,
+  lastOraclePrice: BigNumber,
+  currentOraclePrice: BigNumber,
+  pendingCommits: Array<TotalPoolCommitmentsBN>,
+	oraclePriceTransformer: OraclePriceTransformer
+}
+
+export type PoolStatePreview = {
+  timestamp: number,
+  currentSkew: BigNumber,
+  currentLongBalance: BigNumber,
+  currentLongSupply: BigNumber,
+  currentShortBalance: BigNumber,
+  currentShortSupply: BigNumber,
+  expectedSkew: BigNumber,
+  expectedLongBalance: BigNumber,
+  expectedLongSupply: BigNumber,
+  expectedShortBalance: BigNumber,
+  expectedShortSupply: BigNumber,
+  totalNetPendingLong: BigNumber,
+  totalNetPendingShort: BigNumber,
+  expectedLongTokenPrice: BigNumber,
+  expectedShortTokenPrice: BigNumber,
+  lastOraclePrice: BigNumber,
+  expectedOraclePrice: BigNumber,
+  pendingCommits: TotalPoolCommitmentsBN[]
+}

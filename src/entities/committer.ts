@@ -42,7 +42,7 @@ export default class Committer {
 		this.address = '';
 		this.pendingLong = {
 			...defaultCommitter.pendingLong
-		} 
+		}
 		this.pendingShort= {
 			...defaultCommitter.pendingShort
 		}
@@ -61,7 +61,7 @@ export default class Committer {
 		return committer;
 	}
 
-	/** 
+	/**
 	 * Creates an empty committer that can be used as a default
 	 */
 	public static CreateDefault: () => Committer = () => {
@@ -105,7 +105,7 @@ export default class Committer {
 	 * 	to be committed if burning, or the amount of quote token to use to mint new tokens
 	 */
 	public commit: (
-		type: CommitEnum, 
+		type: CommitEnum,
 		amount: number | BigNumber,
 		payForClaim: boolean,
 		fromAggregateBalances: boolean
