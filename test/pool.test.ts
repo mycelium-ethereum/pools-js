@@ -5,8 +5,8 @@ jest.mock('../src/entities/committer')
 
 import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
-const { utils } = jest.requireActual('ethers');
-ethers.utils = utils;
+const actualEthers = jest.requireActual('ethers');
+ethers.utils = actualEthers.utils;
 
 import Committer from '../src/entities/committer';
 import Pool from '../src/entities/pool'
@@ -75,22 +75,26 @@ const poolConfig: TestConfig = {
 	},
 	settlementToken: USDC,
 	lastPriceTimestamp: expected.lastPriceTimestamp,
-	lastPrice: utils.parseEther(expected.lastPrice.toString()),
-	shortBalance: utils.parseUnits(expected.shortBalance.toString(), USDC.decimals),
-	longBalance: utils.parseUnits(expected.longBalance.toString(), USDC.decimals),
-	oraclePrice: utils.parseEther(expected.oraclePrice.toString()),
+	lastPrice: actualEthers.utils.parseEther(expected.lastPrice.toString()),
+	shortBalance: actualEthers.utils.parseUnits(expected.shortBalance.toString(), USDC.decimals),
+	longBalance: actualEthers.utils.parseUnits(expected.longBalance.toString(), USDC.decimals),
+	oraclePrice: actualEthers.utils.parseEther(expected.oraclePrice.toString()),
 }
+
+const mockProvider = {
+	getNetwork: async () => ({ chainId: '421611' })
+} as unknown as ethers.providers.JsonRpcProvider
 
 const createPool = async (address: string, config?: TestConfig) => (
 	config
 		? Pool.Create({
 			...config,
 			address: address,
-			provider: new ethers.providers.JsonRpcProvider('https://arb1.arbitrum.io/rpc')
+			provider: mockProvider
 		})
 		: Pool.Create({
 			address: address,
-			provider: new ethers.providers.JsonRpcProvider('https://arb1.arbitrum.io/rpc')
+			provider: mockProvider
 		})
 )
 
@@ -121,11 +125,16 @@ const mockPool = {
 	frontRunningInterval: () => Promise.resolve( poolConfig.frontRunningInterval),
 	poolName: () => Promise.resolve( poolConfig.name),
 	tokens: (num: number) => Promise.resolve(num === 0 ? poolConfig.longToken.address : poolConfig.shortToken.address),
-	settlementToken: () => Promise.resolve( poolConfig.settlementToken.address),
+	settlementToken: () => Promise.resolve(poolConfig.settlementToken.address),
+	leverageAmount: () => Promise.resolve('0x3fff0000000000000000000000000000'), // 1 in IEE754 binary128
 
 	// keeper functions
-	executionPrice: () => Promise.resolve( poolConfig.lastPrice)
+	executionPrice: () => Promise.resolve( poolConfig.lastPrice),
 
+	// pool swap library
+	convertDecimalToUInt: () => {
+		return Promise.resolve(actualEthers.BigNumber.from(poolConfig.leverage))
+	}
 }
 
 beforeEach(() => {
@@ -219,7 +228,7 @@ describe('Calculating token prices', () => {
 			createPool(poolConfig.address, poolConfig).then((pool) => {
 
 				const { shortValueTransfer, longValueTransfer } = pool.getNextValueTransfer();
-				const expectedValueTransfer = new BigNumber('24.8685199098422238915852742299023290758825694966190833959429') 
+				const expectedValueTransfer = new BigNumber('24.8685199098422238915852742299023290758825694966190833959429')
 				expect(shortValueTransfer).toEqual(expectedValueTransfer.negated())
 				expect(longValueTransfer).toEqual(expectedValueTransfer)
 
@@ -257,7 +266,7 @@ describe('Calculating token prices', () => {
 			createPool(poolConfig.address, poolConfig).then((pool) => {
 
 				const { shortValueTransfer, longValueTransfer } = pool.getNextValueTransfer();
-				const expectedValueTransfer = new BigNumber('24.8685199098422238915852742299023290758825694966190833959429') 
+				const expectedValueTransfer = new BigNumber('24.8685199098422238915852742299023290758825694966190833959429')
 				expect(shortValueTransfer).toEqual(expectedValueTransfer.negated())
 				expect(longValueTransfer).toEqual(expectedValueTransfer)
 

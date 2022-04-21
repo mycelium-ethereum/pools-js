@@ -121,6 +121,24 @@ export default class PoolToken {
 	}
 
 	/**
+	 * Fetch and set the total token supply
+	 * @returns most up to date token supply
+	 */
+	public fetchSupply: () => Promise<BigNumber> = async () => {
+		if (!this._contract) {
+			throw Error("Failed to fetch token supply: this._contract undefined")
+		}
+		const totalSupply = await this._contract.totalSupply().catch((error) => {
+			throw Error("Failed to fetch token supply: " + error?.message);
+		});
+
+		const formattedSupply = new BigNumber(ethers.utils.formatUnits(totalSupply, this.decimals));
+
+		this.supply = formattedSupply;
+		return formattedSupply;
+	}
+
+	/**
 	 * Approve a spender to spend the signers accounts pool tokens
 	 * @param spender the address of the contract that will spend the pool tokens
 	 * @param amount the amount the signer is allowing the spender to spend

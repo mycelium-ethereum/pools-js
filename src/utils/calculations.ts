@@ -1,4 +1,5 @@
 import { BigNumber } from 'bignumber.js';
+import { PoolStatePreview, PoolStatePreviewInputs } from '../types';
 
 const UP = 1;
 const DOWN = 2;
@@ -293,7 +294,7 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
     let numberOfUpdateInteravalsToWait = Math.ceil(frontRunningInterval / updateInterval);
 
     // if numberOfUpdateInteravalsToWait is 1 then frontRunningInterval <= updateInterval
-    //  for frontRunningInterval < updateInterval 
+    //  for frontRunningInterval < updateInterval
     //   set numberOfWaitIntervals to 0 since there is potential it CAN be included next updateInterval
     //  for frontRunningInterval === updateInterval
     //   the commit will be appropriately caught by the condition
@@ -310,10 +311,130 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
 
     const potentialExecutionTime = nextRebalance + (numberOfUpdateInteravalsToWait * updateInterval);
 
-    // only possible if frontRunningInterval < updateInterval 
+    // only possible if frontRunningInterval < updateInterval
     if ((potentialExecutionTime - commitCreated) < frontRunningInterval) { // commit was created during frontRunningInterval
         return potentialExecutionTime + updateInterval // commit will be executed in the following updateInterval
     } else {
         return potentialExecutionTime;
     }
+}
+
+/**
+ * calculates the expected state of the pool after applying the given pending commits to the given pool state
+ * @param previewInputs
+ * @returns the expected state of the pool
+ */
+export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): PoolStatePreview => {
+    const {
+        leverage,
+        longBalance,
+        shortBalance,
+        longTokenSupply,
+        shortTokenSupply,
+        pendingLongTokenBurn,
+        pendingShortTokenBurn,
+        lastOraclePrice,
+        currentOraclePrice,
+        pendingCommits,
+        oraclePriceTransformer
+    } = previewInputs;
+
+    let expectedLongBalance = longBalance;
+    let expectedShortBalance = shortBalance;
+    // tokens are burned on commit, so they are reflected in token supply immediately
+    // add the pending burns to the starting supplies
+    // as pending commits are executed, the running supply will be reduced based on burns
+    let expectedLongSupply = longTokenSupply.plus(pendingLongTokenBurn);
+    let expectedShortSupply = shortTokenSupply.plus(pendingShortTokenBurn);
+    let totalNetPendingLong = new BigNumber(0);
+    let totalNetPendingShort = new BigNumber(0);
+    let expectedLongTokenPrice = expectedLongBalance.div(expectedLongSupply);
+    let expectedShortTokenPrice = expectedShortBalance.div(expectedShortSupply);
+
+    let movingOraclePriceBefore = lastOraclePrice;
+    let movingOraclePriceAfter = lastOraclePrice;
+
+    for (const pendingCommit of pendingCommits) {
+        const {
+            longBurnPoolTokens,
+            longBurnShortMintPoolTokens,
+            longMintSettlement,
+            shortBurnPoolTokens,
+            shortBurnLongMintPoolTokens,
+            shortMintSettlement
+        } = pendingCommit;
+
+        // apply price transformations to emulate underlying oracle wrapper implementation
+        movingOraclePriceBefore = movingOraclePriceAfter;
+        movingOraclePriceAfter = oraclePriceTransformer(movingOraclePriceBefore, currentOraclePrice);
+
+        const { longValueTransfer, shortValueTransfer } = calcNextValueTransfer(
+            movingOraclePriceBefore,
+            movingOraclePriceAfter,
+            new BigNumber(leverage),
+            expectedLongBalance,
+            expectedShortBalance
+        );
+
+        // balances immediately before commits executed
+        expectedLongBalance = expectedLongBalance.plus(longValueTransfer);
+        expectedShortBalance = expectedShortBalance.plus(shortValueTransfer);
+
+        const totalLongBurn = longBurnPoolTokens.plus(longBurnShortMintPoolTokens);
+        const totalShortBurn = shortBurnPoolTokens.plus(shortBurnLongMintPoolTokens);
+
+        // current balance + expected value transfer / expected supply
+        // if either side has no token supply, any amount no matter how small will buy the whole side
+        const longTokenPriceDenominator = expectedLongSupply.plus(totalLongBurn);
+
+        expectedLongTokenPrice = longTokenPriceDenominator.lte(0)
+        ? expectedLongBalance
+        : expectedLongBalance.div(longTokenPriceDenominator);
+
+        const shortTokenPriceDenominator = expectedShortSupply.plus(totalShortBurn);
+
+        expectedShortTokenPrice = shortTokenPriceDenominator.lte(0)
+        ? expectedShortBalance
+        : expectedShortBalance.div(shortTokenPriceDenominator);
+
+        const totalLongMint = longMintSettlement.plus(shortBurnLongMintPoolTokens.times(expectedShortTokenPrice));
+        const totalShortMint = shortMintSettlement.plus(longBurnShortMintPoolTokens.times(expectedLongTokenPrice));
+
+        const netPendingLongBalance = totalLongMint.minus(totalLongBurn.times(expectedLongTokenPrice));
+        const netPendingShortBalance = totalShortMint.minus(totalShortBurn.times(expectedShortTokenPrice));
+
+        totalNetPendingLong = totalNetPendingLong.plus(netPendingLongBalance);
+        totalNetPendingShort = totalNetPendingShort.plus(netPendingShortBalance);
+
+        expectedLongBalance = expectedLongBalance.plus(netPendingLongBalance);
+        expectedShortBalance = expectedShortBalance.plus(netPendingShortBalance);
+
+        expectedLongSupply = expectedLongSupply.minus(totalLongBurn).plus(totalLongMint.div(expectedLongTokenPrice));
+        expectedShortSupply = expectedShortSupply.minus(totalShortBurn).plus(totalShortMint.div(expectedShortTokenPrice));
+    }
+
+    const expectedSkew = expectedShortBalance.eq(0) || expectedLongBalance.eq(0)
+    ? new BigNumber(1)
+    : expectedLongBalance.div(expectedShortBalance);
+
+    return {
+    timestamp: Math.floor(Date.now() / 1000),
+    currentSkew: longBalance.eq(0) || shortBalance.eq(0) ? new BigNumber(1) : longBalance.div(shortBalance),
+    currentLongBalance: longBalance,
+    currentLongSupply: longTokenSupply.plus(pendingLongTokenBurn),
+    currentShortBalance: shortBalance,
+    currentShortSupply: shortTokenSupply.plus(pendingShortTokenBurn),
+    expectedSkew,
+    expectedLongBalance,
+    expectedLongSupply,
+    expectedShortBalance,
+    expectedShortSupply,
+    totalNetPendingLong,
+    totalNetPendingShort,
+    expectedLongTokenPrice,
+    expectedShortTokenPrice,
+    lastOraclePrice: lastOraclePrice,
+    expectedOraclePrice: movingOraclePriceAfter,
+    pendingCommits
+    };
 }
