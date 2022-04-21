@@ -281,6 +281,8 @@ export const calcBptTokenSpotPrice: (
 /**
  * Calculate the expected execution given a commit timestamp, the frontRunningInterval, updateInterval and lastUpdate.
  *  This is just an estimate as there is a slight delay between possibleExecution and finalExecutionTimestamp
+ *  See https://github.com/tracer-protocol/pools-js/blob/updated-calc/src/utils/calculations.ts#L280-L332
+ *      for a long clearer sudo codish written version
  */
 export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updateInterval: number, lastUpdate: number, commitCreated: number) => number = (
     frontRunningInterval, updateInterval,
@@ -288,10 +290,16 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
 ) => {
     const nextRebalance = lastUpdate + updateInterval;
 
+    const timeSinceCommit = lastUpdate - commitCreated;
+    let updateIntervalsPassed = timeSinceCommit > 0 ? Math.ceil(timeSinceCommit / updateInterval) : 0; 
+    if (updateIntervalsPassed === 1) {
+        updateIntervalsPassed = 0;
+    }
+
     // for frontRunningInterval <= updateInterval this will be 1
     //  anything else will give us how many intervals we need to wait
     //  such that waitingTime >= frontRunningInterval
-    let numberOfUpdateInteravalsToWait = Math.ceil(frontRunningInterval / updateInterval);
+    let updateIntervalsInFrontRunningInterval = Math.ceil(frontRunningInterval / updateInterval);
 
     // if numberOfUpdateInteravalsToWait is 1 then frontRunningInterval <= updateInterval
     //  for frontRunningInterval < updateInterval
@@ -305,11 +313,11 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
     //      = lastUpdate + updateInterval < updateInterval + commitCreated
     //      = lastUpdate < commitCreated
     //   and will always be included in the following updateInterval unless lastUpdate < commitCreated
-    if (numberOfUpdateInteravalsToWait === 1) {
-        numberOfUpdateInteravalsToWait = 0
+    if (frontRunningInterval <= updateInterval) {
+        updateIntervalsInFrontRunningInterval = 0
     }
 
-    const potentialExecutionTime = nextRebalance + (numberOfUpdateInteravalsToWait * updateInterval);
+    const potentialExecutionTime = nextRebalance + ((updateIntervalsInFrontRunningInterval - updateIntervalsPassed) * updateInterval);
 
     // only possible if frontRunningInterval < updateInterval
     if ((potentialExecutionTime - commitCreated) < frontRunningInterval) { // commit was created during frontRunningInterval
