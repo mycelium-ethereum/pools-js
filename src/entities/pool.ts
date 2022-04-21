@@ -156,29 +156,39 @@ export default class Pool {
 		)
 		this._contract = contract;
 
-		const network = await this.provider.getNetwork()
-		this.chainId = network.chainId;
 
-		if(!poolSwapLibraryByNetwork[this.chainId]) {
-			throw new Error(`Cannot initialise pool, no known pool swap library for network ${this.chainId}`);
-		}
-
-		const poolSwapLibrary = PoolSwapLibrary__factory.connect(
-			poolSwapLibraryByNetwork[this.chainId],
-			this.provider
-		)
-
-		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name, leverage] = await Promise.all([
+		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name] = await Promise.all([
 			contract.lastPriceTimestamp(),
 			poolInfo?.committer?.address ? poolInfo?.committer?.address : contract.poolCommitter(),
 			poolInfo?.keeper ? poolInfo?.keeper : contract.keeper(),
 			poolInfo?.updateInterval ? poolInfo?.updateInterval : contract.updateInterval(),
 			poolInfo?.frontRunningInterval ? poolInfo?.frontRunningInterval : contract.frontRunningInterval(),
-			poolInfo?.name ? poolInfo?.name : contract.poolName(),
-			poolInfo?.leverage ? poolInfo?.leverage : contract.leverageAmount()
-				.then(leverageAmountBytes => poolSwapLibrary.convertDecimalToUInt(leverageAmountBytes))
-				.then(leverageBN => leverageBN.toNumber()),
+			poolInfo?.name ? poolInfo?.name : contract.poolName()
 		]);
+
+
+		const network = await this.provider.getNetwork()
+		this.chainId = network.chainId;
+		if(poolInfo?.leverage) {
+			this.leverage = poolInfo.leverage
+		} else if(!poolSwapLibraryByNetwork[this.chainId]) {
+			// temp fix since the fetched leverage is in IEEE 128 bit. Get leverage amount from name
+			this.leverage = parseInt(name.split('-')?.[0] ?? 1);
+		} else {
+			try {
+				const poolSwapLibrary = PoolSwapLibrary__factory.connect(
+					poolSwapLibraryByNetwork[this.chainId],
+					this.provider
+				)
+
+				const leverageAmountBytes = await contract.leverageAmount();
+				const convertedLeverage = await poolSwapLibrary.convertDecimalToUInt(leverageAmountBytes);
+
+				this.leverage = convertedLeverage.toNumber();
+			} catch (error) {
+				this.leverage = parseInt(name.split('-')?.[0] ?? 1);
+			}
+		}
 
 		const [longTokenAddress, shortTokenAddress, settlementTokenAddress] = await Promise.all([
 			poolInfo.longToken?.address ? poolInfo.longToken?.address : contract.tokens(0),
@@ -233,7 +243,6 @@ export default class Pool {
 		this.updateInterval = new BigNumber(updateInterval);
 		this.frontRunningInterval = new BigNumber(frontRunningInterval);
 		this.lastUpdate = new BigNumber(lastUpdate.toString());
-		this.leverage = leverage;
 		this.oraclePriceTransformer = poolInfo.oraclePriceTransformer ?? movingAveragePriceTransformer
 	}
 
