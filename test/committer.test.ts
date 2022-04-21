@@ -13,7 +13,6 @@ const QUOTE_TOKEN_DECIMALS = 6
 
 const expected = {
 	address: '0xCommitterAddress',
-	minimumCommitSize: new BigNumberJS(1000),
 	pendingLong: {
 		burn: new BigNumberJS(100),
 		mint: new BigNumberJS(0)
@@ -25,7 +24,6 @@ const expected = {
 }
 interface CommitterInfo {
 	address: string;
-	minimumCommitSize: number;
 	pendingLong: {
 		burn: number,
 		mint: number,
@@ -38,7 +36,6 @@ interface CommitterInfo {
 
 const committerInfo: CommitterInfo = {
 	address: expected.address,
-	minimumCommitSize: expected.minimumCommitSize.toNumber(),
 	pendingLong: {
 		mint: expected.pendingLong.mint.toNumber(),
 		burn: expected.pendingLong.burn.toNumber(),
@@ -58,12 +55,12 @@ const createCommitter: (config?: CommitterInfo) => Promise<Committer> = async (c
 				...config,
 				address: committerInfo.address,
 				provider: provider,
-				quoteTokenDecimals: QUOTE_TOKEN_DECIMALS
+				settlementTokenDecimals: QUOTE_TOKEN_DECIMALS
 			})
 			: Committer.Create({
 				address: committerInfo.address,
 				provider: provider,
-				quoteTokenDecimals: QUOTE_TOKEN_DECIMALS
+				settlementTokenDecimals: QUOTE_TOKEN_DECIMALS
 			})
 	)
 }
@@ -71,7 +68,6 @@ const createCommitter: (config?: CommitterInfo) => Promise<Committer> = async (c
 
 const assertCommitter: (committer: Committer) => void = (committer) => {
 	expect(committer.address).toEqual(expected.address);
-	expect(committer.minimumCommitSize).toEqual(expected.minimumCommitSize);
 	expect(committer.pendingLong.burn).toEqual(expected.pendingLong.burn);
 	expect(committer.pendingLong.mint).toEqual(expected.pendingLong.mint);
 	expect(committer.pendingShort.burn).toEqual(expected.pendingShort.burn);
@@ -79,22 +75,17 @@ const assertCommitter: (committer: Committer) => void = (committer) => {
 }
 
 const mockCommitter = {
-	// committer functions
-	minimumCommitSize: () => committerInfo.minimumCommitSize,
-	shadowPools: (num: CommitEnum) => {
-		switch (num) {
-			case CommitEnum.longBurn:
-				return Promise.resolve(ethers.utils.parseUnits(expected.pendingLong.burn.toString(), QUOTE_TOKEN_DECIMALS))
-			case CommitEnum.longMint:
-				return Promise.resolve(ethers.utils.parseUnits(expected.pendingLong.mint.toString(), QUOTE_TOKEN_DECIMALS))
-			case CommitEnum.shortBurn:
-				return Promise.resolve(ethers.utils.parseUnits(expected.pendingShort.burn.toString(), QUOTE_TOKEN_DECIMALS))
-			case CommitEnum.shortMint:
-				return Promise.resolve(ethers.utils.parseUnits(expected.pendingShort.mint.toString(), QUOTE_TOKEN_DECIMALS))
-			default:
-				return 0
-		}
-	}
+	// committer function
+	totalPoolCommitments: async () => {
+		return ([
+			ethers.utils.parseUnits(expected.pendingLong.mint.toString(), QUOTE_TOKEN_DECIMALS), // longMints
+			BigNumber.from(0), // this doesnt matter
+			ethers.utils.parseUnits(expected.pendingShort.mint.toString(), QUOTE_TOKEN_DECIMALS), // shortMints
+		])
+	},
+	pendingLongBurnPoolTokens: async () => ethers.utils.parseUnits(expected.pendingLong.burn.toString(), QUOTE_TOKEN_DECIMALS), // longBurns
+	pendingShortBurnPoolTokens: async () => ethers.utils.parseUnits(expected.pendingShort.burn.toString(), QUOTE_TOKEN_DECIMALS), // shortBurns
+	updateIntervalId: async () => Promise.resolve(() => BigNumber.from(0))
 }
 
 describe('Testing committer constructor', () => {
@@ -122,8 +113,7 @@ describe('Testing committer constructor', () => {
 		expect(committer.pendingLong.mint.toNumber()).toEqual(0);
 		expect(committer.pendingShort.burn.toNumber()).toEqual(0);
 		expect(committer.pendingShort.mint.toNumber()).toEqual(0);
-		expect(committer.quoteTokenDecimals).toEqual(18);
-		expect(committer.minimumCommitSize.toNumber()).toEqual(0);
+		expect(committer.settlementTokenDecimals).toEqual(18);
 		expect(() => committer.connect(null)).toThrow('Failed to connect Committer: provider cannot be undefined')
 	});
 });
@@ -144,38 +134,21 @@ describe('Testing fetchShadowPool', () => {
 	it('_contract is undefined', async () => {
 		const committer = await createCommitter()
 		committer._contract = undefined;
-		await expect(async () => await committer.fetchShadowPool(CommitEnum.longBurn))
-			.rejects
-			.toThrow("Failed to update pending amount: this._contract undefined")
 		await expect(async () => await committer.fetchAllShadowPools())
 			.rejects
 			.toThrow("Failed to update pending amounts: this._contract undefined")
 	})
 	it('Successfuly fetch and set', async () => {
 		const committer = await createCommitter()
-		const pendingLongBurn = await committer.fetchShadowPool(CommitEnum.longBurn);
-		expect(pendingLongBurn).toEqual(expected.pendingLong.burn)
-		expect(committer.pendingLong.burn).toEqual(expected.pendingLong.burn)
-		const pendingLongMint = await committer.fetchShadowPool(CommitEnum.longMint);
-		expect(pendingLongMint).toEqual(expected.pendingLong.mint)
-		expect(committer.pendingLong.mint).toEqual(expected.pendingLong.mint)
-		const pendingShortBurn = await committer.fetchShadowPool(CommitEnum.shortBurn);
-		expect(pendingShortBurn).toEqual(expected.pendingShort.burn)
-		expect(committer.pendingShort.burn).toEqual(expected.pendingShort.burn)
-		const pendingShortMint = await committer.fetchShadowPool(CommitEnum.shortMint);
-		expect(pendingShortMint).toEqual(expected.pendingShort.mint)
-		expect(committer.pendingShort.mint).toEqual(expected.pendingShort.mint)
-	})
-	it('Successfuly fetch and set', async () => {
-		const committer = await createCommitter()
 		const { pendingLong, pendingShort } = await committer.fetchAllShadowPools();
-		expect(pendingLong.burn).toEqual(expected.pendingLong.burn)
-		expect(committer.pendingLong.burn).toEqual(expected.pendingLong.burn)
-		expect(pendingLong.mint).toEqual(expected.pendingLong.mint)
-		expect(committer.pendingLong.mint).toEqual(expected.pendingLong.mint)
-		expect(pendingShort.burn).toEqual(expected.pendingShort.burn)
-		expect(committer.pendingShort.burn).toEqual(expected.pendingShort.burn)
-		expect(pendingShort.mint).toEqual(expected.pendingShort.mint)
-		expect(committer.pendingShort.mint).toEqual(expected.pendingShort.mint)
+
+		expect(pendingLong.burn).toEqual(expected.pendingLong.burn);
+		expect(committer.pendingLong.burn).toEqual(expected.pendingLong.burn);
+		expect(pendingLong.mint).toEqual(expected.pendingLong.mint);
+		expect(committer.pendingLong.mint).toEqual(expected.pendingLong.mint);
+		expect(pendingShort.burn).toEqual(expected.pendingShort.burn);
+		expect(committer.pendingShort.burn).toEqual(expected.pendingShort.burn);
+		expect(pendingShort.mint).toEqual(expected.pendingShort.mint);
+		expect(committer.pendingShort.mint).toEqual(expected.pendingShort.mint);
 	})
 })

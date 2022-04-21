@@ -1,5 +1,5 @@
 import { ERC20, ERC20__factory } from "@tracer-protocol/perpetual-pools-contracts/types";
-import BigNumber from "bignumber.js";
+import BigNumber from "bignumber.js"
 import { ethers } from "ethers";
 import { IContract } from "../types";
 
@@ -27,7 +27,7 @@ export interface TokenInfo {
 export default class Token {
 	_contract?: ERC20;
 	address: string;
-	provider: ethers.providers.Provider | ethers.Signer;
+	provider: ethers.providers.Provider | ethers.Signer | undefined;
 	name: string;
 	symbol: string;
 	decimals: number;
@@ -38,7 +38,7 @@ export default class Token {
 	private constructor () {
 		// these all need to be ovverridden in the init function
 		this.address = '';
-		this.provider = new ethers.providers.JsonRpcProvider('');
+		this.provider = undefined;
 		this.name = '';
 		this.symbol = '';
 		this.decimals = 18;
@@ -70,14 +70,15 @@ export default class Token {
 	 * @private
 	 * @param tokenInfo {@link IToken | IToken interface props}
 	 */
-	private init: (tokenInfo: IToken) => void = async (tokenInfo) => {
+	private init: (tokenInfo: IToken) => Promise<void> = async (tokenInfo) => {
 		this.provider = tokenInfo.provider;
 		this.address = tokenInfo.address;
 
 		const contract = ERC20__factory.connect(
 			tokenInfo.address,
 			tokenInfo.provider
-		)
+		);
+
 		this._contract = contract;
 
 		const [name, symbol, decimals] = await Promise.all([

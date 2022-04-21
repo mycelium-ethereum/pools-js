@@ -16,7 +16,7 @@ export interface IPoolToken extends IToken {
 export default class PoolToken {
 	_contract?: PoolTokenContract
 	address: string;
-	provider: ethers.providers.Provider | ethers.Signer;
+	provider: ethers.providers.Provider | ethers.Signer | undefined;
 	name: string;
 	symbol: string;
 	decimals: number;
@@ -30,7 +30,7 @@ export default class PoolToken {
 	private constructor () {
 		// these all need to be ovverridden in the init function
 		this.address = '';
-		this.provider = new ethers.providers.JsonRpcProvider('');
+		this.provider = undefined;
 		this.name = '';
 		this.symbol = '';
 		this.decimals = 18;
@@ -64,7 +64,7 @@ export default class PoolToken {
 	 * Private initialisation function called in {@link PoolToken.Create}
 	 * @param tokenInfo {@link IPoolToken | IPoolToken interface props}
 	 */
-	private init: (tokenInfo: IPoolToken) => void = async (tokenInfo) => {
+	private init: (tokenInfo: IPoolToken) => Promise<void> = async (tokenInfo) => {
 		this.provider = tokenInfo.provider;
 		this.address = tokenInfo.address;
 		this.pool = tokenInfo.pool;
@@ -118,6 +118,24 @@ export default class PoolToken {
 			throw Error("Failed to fetch allowance: " + error?.message);
 		});
 		return (new BigNumber (ethers.utils.formatUnits(balanceOf, this.decimals)));
+	}
+
+	/**
+	 * Fetch and set the total token supply
+	 * @returns most up to date token supply
+	 */
+	public fetchSupply: () => Promise<BigNumber> = async () => {
+		if (!this._contract) {
+			throw Error("Failed to fetch token supply: this._contract undefined")
+		}
+		const totalSupply = await this._contract.totalSupply().catch((error) => {
+			throw Error("Failed to fetch token supply: " + error?.message);
+		});
+
+		const formattedSupply = new BigNumber(ethers.utils.formatUnits(totalSupply, this.decimals));
+
+		this.supply = formattedSupply;
+		return formattedSupply;
 	}
 
 	/**

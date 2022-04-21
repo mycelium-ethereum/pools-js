@@ -1,4 +1,5 @@
 import { BigNumber } from 'bignumber.js';
+import { PoolStatePreview, PoolStatePreviewInputs } from '../types';
 
 const UP = 1;
 const DOWN = 2;
@@ -152,25 +153,6 @@ export const calcDirection: (oldPrice: BigNumber, newPrice: BigNumber) => BigNum
 };
 
 /**
- * Calc minimum amount in to sell
- * @param totalSupply total token supply
- * @param tokenBalance token balance
- * @param minimumCommitSize
- * @param pendingCommits accumulative commit amounts
- * @returns Minimum amount in
- */
-export const calcMinAmountIn: (
-    totalSupply: BigNumber,
-    tokenBalance: BigNumber,
-    minimumCommitSize: BigNumber,
-    pendingCommits: BigNumber,
-) => BigNumber = (totalSupply, tokenBalance, minimumCommitSize, pendingCommits) => {
-    // minumumCommitSize = (balance * amountIn) / tokenSupply + shadowPool
-    // (minimumCommitSize * (tokenSupply + shadowPool)) / balance
-    return minimumCommitSize.times(totalSupply.plus(pendingCommits)).div(tokenBalance.minus(minimumCommitSize));
-};
-
-/**
  * Calculate the pool tokens price
  * Since totalQuoteValue will generally be in USD the returned amount
  *  will also be in USD
@@ -294,4 +276,173 @@ export const calcBptTokenSpotPrice: (
     const swapFeeMultiplier = new BigNumber(1).div(new BigNumber(1).minus(swapFee))
 
     return (numerator.div(denominator)).times(swapFeeMultiplier);
+}
+
+/**
+ * Calculate the expected execution given a commit timestamp, the frontRunningInterval, updateInterval and lastUpdate.
+ *  This is just an estimate as there is a slight delay between possibleExecution and finalExecutionTimestamp
+ *  See https://github.com/tracer-protocol/pools-js/blob/updated-calc/src/utils/calculations.ts#L280-L332
+ *      for a long clearer sudo codish written version
+ */
+export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updateInterval: number, lastUpdate: number, commitCreated: number) => number = (
+    frontRunningInterval, updateInterval,
+    lastUpdate, commitCreated
+) => {
+    const nextRebalance = lastUpdate + updateInterval;
+
+    const timeSinceCommit = lastUpdate - commitCreated;
+    let updateIntervalsPassed = timeSinceCommit > 0 ? Math.ceil(timeSinceCommit / updateInterval) : 0; 
+    if (updateIntervalsPassed === 1) {
+        updateIntervalsPassed = 0;
+    }
+
+    // for frontRunningInterval <= updateInterval this will be 1
+    //  anything else will give us how many intervals we need to wait
+    //  such that waitingTime >= frontRunningInterval
+    let updateIntervalsInFrontRunningInterval = Math.ceil(frontRunningInterval / updateInterval);
+
+    // if numberOfUpdateInteravalsToWait is 1 then frontRunningInterval <= updateInterval
+    //  for frontRunningInterval < updateInterval
+    //   set numberOfWaitIntervals to 0 since there is potential it CAN be included next updateInterval
+    //  for frontRunningInterval === updateInterval
+    //   the commit will be appropriately caught by the condition
+    //      (potentialExecutionTime - commitCreated) < frontRunningInterval
+    //      = nextRebalance - commitCreated < frontRunningInterval
+    //      = lastUpdate + updateInterval - commitCreated < frontRunningInterval
+    //      = lastUpdate + updateInterval < frontRunningInterval + commitCreated
+    //      = lastUpdate + updateInterval < updateInterval + commitCreated
+    //      = lastUpdate < commitCreated
+    //   and will always be included in the following updateInterval unless lastUpdate < commitCreated
+    if (frontRunningInterval <= updateInterval) {
+        updateIntervalsInFrontRunningInterval = 0
+    }
+
+    const potentialExecutionTime = nextRebalance + ((updateIntervalsInFrontRunningInterval - updateIntervalsPassed) * updateInterval);
+
+    // only possible if frontRunningInterval < updateInterval
+    if ((potentialExecutionTime - commitCreated) < frontRunningInterval) { // commit was created during frontRunningInterval
+        return potentialExecutionTime + updateInterval // commit will be executed in the following updateInterval
+    } else {
+        return potentialExecutionTime;
+    }
+}
+
+/**
+ * calculates the expected state of the pool after applying the given pending commits to the given pool state
+ * @param previewInputs
+ * @returns the expected state of the pool
+ */
+export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): PoolStatePreview => {
+    const {
+        leverage,
+        longBalance,
+        shortBalance,
+        longTokenSupply,
+        shortTokenSupply,
+        pendingLongTokenBurn,
+        pendingShortTokenBurn,
+        lastOraclePrice,
+        currentOraclePrice,
+        pendingCommits,
+        oraclePriceTransformer
+    } = previewInputs;
+
+    let expectedLongBalance = longBalance;
+    let expectedShortBalance = shortBalance;
+    // tokens are burned on commit, so they are reflected in token supply immediately
+    // add the pending burns to the starting supplies
+    // as pending commits are executed, the running supply will be reduced based on burns
+    let expectedLongSupply = longTokenSupply.plus(pendingLongTokenBurn);
+    let expectedShortSupply = shortTokenSupply.plus(pendingShortTokenBurn);
+    let totalNetPendingLong = new BigNumber(0);
+    let totalNetPendingShort = new BigNumber(0);
+    let expectedLongTokenPrice = expectedLongBalance.div(expectedLongSupply);
+    let expectedShortTokenPrice = expectedShortBalance.div(expectedShortSupply);
+
+    let movingOraclePriceBefore = lastOraclePrice;
+    let movingOraclePriceAfter = lastOraclePrice;
+
+    for (const pendingCommit of pendingCommits) {
+        const {
+            longBurnPoolTokens,
+            longBurnShortMintPoolTokens,
+            longMintSettlement,
+            shortBurnPoolTokens,
+            shortBurnLongMintPoolTokens,
+            shortMintSettlement
+        } = pendingCommit;
+
+        // apply price transformations to emulate underlying oracle wrapper implementation
+        movingOraclePriceBefore = movingOraclePriceAfter;
+        movingOraclePriceAfter = oraclePriceTransformer(movingOraclePriceBefore, currentOraclePrice);
+
+        const { longValueTransfer, shortValueTransfer } = calcNextValueTransfer(
+            movingOraclePriceBefore,
+            movingOraclePriceAfter,
+            new BigNumber(leverage),
+            expectedLongBalance,
+            expectedShortBalance
+        );
+
+        // balances immediately before commits executed
+        expectedLongBalance = expectedLongBalance.plus(longValueTransfer);
+        expectedShortBalance = expectedShortBalance.plus(shortValueTransfer);
+
+        const totalLongBurn = longBurnPoolTokens.plus(longBurnShortMintPoolTokens);
+        const totalShortBurn = shortBurnPoolTokens.plus(shortBurnLongMintPoolTokens);
+
+        // current balance + expected value transfer / expected supply
+        // if either side has no token supply, any amount no matter how small will buy the whole side
+        const longTokenPriceDenominator = expectedLongSupply.plus(totalLongBurn);
+
+        expectedLongTokenPrice = longTokenPriceDenominator.lte(0)
+        ? expectedLongBalance
+        : expectedLongBalance.div(longTokenPriceDenominator);
+
+        const shortTokenPriceDenominator = expectedShortSupply.plus(totalShortBurn);
+
+        expectedShortTokenPrice = shortTokenPriceDenominator.lte(0)
+        ? expectedShortBalance
+        : expectedShortBalance.div(shortTokenPriceDenominator);
+
+        const totalLongMint = longMintSettlement.plus(shortBurnLongMintPoolTokens.times(expectedShortTokenPrice));
+        const totalShortMint = shortMintSettlement.plus(longBurnShortMintPoolTokens.times(expectedLongTokenPrice));
+
+        const netPendingLongBalance = totalLongMint.minus(totalLongBurn.times(expectedLongTokenPrice));
+        const netPendingShortBalance = totalShortMint.minus(totalShortBurn.times(expectedShortTokenPrice));
+
+        totalNetPendingLong = totalNetPendingLong.plus(netPendingLongBalance);
+        totalNetPendingShort = totalNetPendingShort.plus(netPendingShortBalance);
+
+        expectedLongBalance = expectedLongBalance.plus(netPendingLongBalance);
+        expectedShortBalance = expectedShortBalance.plus(netPendingShortBalance);
+
+        expectedLongSupply = expectedLongSupply.minus(totalLongBurn).plus(totalLongMint.div(expectedLongTokenPrice));
+        expectedShortSupply = expectedShortSupply.minus(totalShortBurn).plus(totalShortMint.div(expectedShortTokenPrice));
+    }
+
+    const expectedSkew = expectedShortBalance.eq(0) || expectedLongBalance.eq(0)
+    ? new BigNumber(1)
+    : expectedLongBalance.div(expectedShortBalance);
+
+    return {
+    timestamp: Math.floor(Date.now() / 1000),
+    currentSkew: longBalance.eq(0) || shortBalance.eq(0) ? new BigNumber(1) : longBalance.div(shortBalance),
+    currentLongBalance: longBalance,
+    currentLongSupply: longTokenSupply.plus(pendingLongTokenBurn),
+    currentShortBalance: shortBalance,
+    currentShortSupply: shortTokenSupply.plus(pendingShortTokenBurn),
+    expectedSkew,
+    expectedLongBalance,
+    expectedLongSupply,
+    expectedShortBalance,
+    expectedShortSupply,
+    totalNetPendingLong,
+    totalNetPendingShort,
+    expectedLongTokenPrice,
+    expectedShortTokenPrice,
+    lastOraclePrice: lastOraclePrice,
+    expectedOraclePrice: movingOraclePriceAfter,
+    pendingCommits
+    };
 }
