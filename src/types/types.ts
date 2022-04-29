@@ -1,6 +1,7 @@
 import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
 import { NETWORKS } from '../utils';
+import { PoolCommitter } from "@tracer-protocol/perpetual-pools-contracts/types";
 
 /**
  * Holds burn and mint pending amounts
@@ -33,23 +34,7 @@ export type StaticTokenInfo = {
 type KnownNetworkKeys = keyof typeof NETWORKS;
 export type KnownNetwork = typeof NETWORKS[KnownNetworkKeys];
 
-export type TotalPoolCommitments = [
-  ethers.BigNumber,
-  ethers.BigNumber,
-  ethers.BigNumber,
-  ethers.BigNumber,
-  ethers.BigNumber,
-  ethers.BigNumber,
-  ethers.BigNumber
-] & {
-  longMintSettlement: ethers.BigNumber;
-  longBurnPoolTokens: ethers.BigNumber;
-  shortMintSettlement: ethers.BigNumber;
-  shortBurnPoolTokens: ethers.BigNumber;
-  shortBurnLongMintPoolTokens: ethers.BigNumber;
-  longBurnShortMintPoolTokens: ethers.BigNumber;
-  updateIntervalId: ethers.BigNumber;
-}
+export type TotalPoolCommitments = Awaited<ReturnType<PoolCommitter['totalPoolCommitments']>>
 
 export type TotalPoolCommitmentsBN = {
   longMintSettlement: BigNumber;
@@ -58,7 +43,6 @@ export type TotalPoolCommitmentsBN = {
   shortBurnPoolTokens: BigNumber;
   shortBurnLongMintPoolTokens: BigNumber;
   longBurnShortMintPoolTokens: BigNumber;
-  updateIntervalId: BigNumber;
 }
 
 export type OraclePriceTransformer = (lastPrice: BigNumber, currentPrice: BigNumber) => BigNumber
@@ -73,7 +57,7 @@ export type PoolStatePreviewInputs = {
   pendingShortTokenBurn: BigNumber,
   lastOraclePrice: BigNumber,
   currentOraclePrice: BigNumber,
-  pendingCommits: Array<TotalPoolCommitmentsBN>,
+  pendingCommits: TotalPoolCommitmentsBN[],
 	oraclePriceTransformer: OraclePriceTransformer
 }
 
