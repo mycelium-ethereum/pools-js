@@ -36,8 +36,7 @@ export const pendingCommitsToBN = (pendingCommits: TotalPoolCommitments): TotalP
       longBurnShortMintPoolTokens: ethersBNtoBN(pendingCommits.longBurnShortMintPoolTokens),
       shortBurnPoolTokens: ethersBNtoBN(pendingCommits.shortBurnPoolTokens),
       shortMintSettlement: ethersBNtoBN(pendingCommits.shortMintSettlement),
-      shortBurnLongMintPoolTokens: ethersBNtoBN(pendingCommits.shortBurnLongMintPoolTokens),
-      updateIntervalId: ethersBNtoBN(pendingCommits.updateIntervalId)
+      shortBurnLongMintPoolTokens: ethersBNtoBN(pendingCommits.shortBurnLongMintPoolTokens)
     };
   }
 
