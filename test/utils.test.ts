@@ -15,7 +15,6 @@ import {
   calcEffectiveShortGain,
   calcRebalanceRate,
   calcNotionalValue,
-  calcLossMultiplier,
   calcAPY,
   calcBptTokenPrice,
   calcBptTokenSpotPrice,
@@ -86,80 +85,87 @@ describe('calcNextValueTransfer', () => {
     expect(transfers.shortValueTransfer).to.be.bignumber.equal(0);
     expect(transfers.longValueTransfer).to.be.bignumber.equal(0);
   });
-  it('Number goes up 1x', () => {
-    // number goes up payment comes from shorts
-    const percentageTransfer = calcPercentageLossTransfer(new BigNumber(1), new BigNumber(1.1), ONE_X);
-    expect(percentageTransfer.toNumber()).to.be.bignumber.approximately(0.09, 0.01)
-    // all transfers should be 9.09% of the shortBalance
-    // in the first two cases this is 0.09 * 10000 which is approx -818.18
-    let approxValueTransfer = new BigNumber(909.09); // this is 9.09% of 10000
-    let transfers = calcNextValueTransfer(new BigNumber(1), new BigNumber(1.1), ONE_X, EQUAL_POOLS.longBalance, EQUAL_POOLS.shortBalance)
+  it('Number goes up 1%', () => {
+    const oldPrice = new BigNumber(2000);
+    const newPrice = new BigNumber(2020);
+    const percentageTransfer = calcPercentageLossTransfer(oldPrice, newPrice, THREE_X);
+    expect(percentageTransfer.toNumber()).to.be.bignumber.approximately(0.0294, 0.001);
+
+    // all transfers should be approx 2.942% of the shortBalance
+    let approxValueTransfer = new BigNumber(296.942); // this is ~2.942% of 10000
+    console.log(percentageTransfer.toNumber())
+    let transfers = calcNextValueTransfer(oldPrice, newPrice, THREE_X, EQUAL_POOLS.longBalance, EQUAL_POOLS.shortBalance)
     expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.negated().toNumber(), 0.01);
     expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.toNumber(), 0.01);
-    transfers = calcNextValueTransfer(new BigNumber(1), new BigNumber(1.1), ONE_X, LESS_LONG.longBalance, LESS_LONG.shortBalance)
+    transfers = calcNextValueTransfer(oldPrice, newPrice, THREE_X, LESS_LONG.longBalance, LESS_LONG.shortBalance)
     expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.negated().toNumber(), 0.01);
     expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.toNumber(), 0.01);
 
-    transfers = calcNextValueTransfer(new BigNumber(1), new BigNumber(1.1), ONE_X, LESS_SHORT.longBalance, LESS_SHORT.shortBalance)
-    approxValueTransfer = new BigNumber(818.18);
+    transfers = calcNextValueTransfer(oldPrice, newPrice, THREE_X, LESS_SHORT.longBalance, LESS_SHORT.shortBalance)
+    approxValueTransfer = new BigNumber(267.248); // this is ~2.942% of 9000
     expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.negated().toNumber(), 0.01);
     expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.toNumber(), 0.01);
   });
-  it('Number goes down 1x', () => {
-    // number goes down payment comes from longs
-    const percentageTransfer = calcPercentageLossTransfer(new BigNumber(1), new BigNumber(0.9), ONE_X);
-    expect(percentageTransfer.toNumber()).to.be.bignumber.equal(0.1);
+  it('Number goes down 1%', () => {
+    const oldPrice = new BigNumber(2000);
+    const newPrice = new BigNumber(1980);
+    const percentageTransfer = calcPercentageLossTransfer(oldPrice, newPrice, THREE_X);
+    expect(percentageTransfer.toNumber()).to.be.bignumber.approximately(0.0299, 0.001);
 
-    // all transfers should be 10% of the longBalance
-    let approxValueTransfer = new BigNumber(1000); // this is 10% of 10000
-    let transfers = calcNextValueTransfer(new BigNumber(1), new BigNumber(0.9), ONE_X, EQUAL_POOLS.longBalance, EQUAL_POOLS.shortBalance)
-    expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.equal(approxValueTransfer);
-    expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.equal(approxValueTransfer.negated());
-    transfers = calcNextValueTransfer(new BigNumber(1), new BigNumber(0.9), ONE_X, LESS_SHORT.longBalance, LESS_SHORT.shortBalance)
-    expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.equal(approxValueTransfer);
-    expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.equal(approxValueTransfer.negated());
+    // all transfers should be approx 2.9991 % of the shortBalance
+    // the full decimal is 0.02999100323882014964
+    let approxValueTransfer = new BigNumber(299.91); // this is ~2.9991% of 10000
+    let transfers = calcNextValueTransfer(oldPrice, newPrice, THREE_X, EQUAL_POOLS.longBalance, EQUAL_POOLS.shortBalance)
+    expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.toNumber(), 0.01);
+    expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.negated().toNumber(), 0.01);
+    transfers = calcNextValueTransfer(oldPrice, newPrice, THREE_X, LESS_SHORT.longBalance, LESS_SHORT.shortBalance)
+    expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.toNumber(), 0.01);
+    expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.negated().toNumber(), 0.01);
 
-    transfers = calcNextValueTransfer(new BigNumber(1), new BigNumber(0.9), ONE_X, LESS_LONG.longBalance, LESS_LONG.shortBalance)
-    approxValueTransfer = new BigNumber(900); // this is 10% of 900 
-    expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.equal(approxValueTransfer);
-    expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.equal(approxValueTransfer.negated());
+    transfers = calcNextValueTransfer(oldPrice, newPrice, THREE_X, LESS_LONG.longBalance, LESS_LONG.shortBalance)
+    approxValueTransfer = new BigNumber(269.919); // this is ~2.9991% of 9000
+    expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.toNumber(), 0.01);
+    expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.negated().toNumber(), 0.01);
   });
-  it('Number goes up 3x', () => {
-    const percentageTransfer = calcPercentageLossTransfer(new BigNumber(1), new BigNumber(1.1), THREE_X);
-    expect(percentageTransfer.toNumber()).to.be.bignumber.approximately(0.2486, 0.001);
+  it('Price halves', () => {
+    const oldPrice = new BigNumber(4000);
+    const newPrice = new BigNumber(2000);
+    const percentageTransfer = calcPercentageLossTransfer(oldPrice, newPrice, THREE_X);
+    expect(percentageTransfer.toNumber()).to.be.bignumber.approximately(0.9051, 0.001);
 
-    // all transfers should be approx 24.86% of the shortBalance
-    let approxValueTransfer = new BigNumber(2486.85); // this is 24.86% of 10000
-    let transfers = calcNextValueTransfer(new BigNumber(1), new BigNumber(1.1), THREE_X, EQUAL_POOLS.longBalance, EQUAL_POOLS.shortBalance)
-    expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.negated().toNumber(), 0.01);
+    // transfer should be approx 90.5148% of the longBalance 
+    const approxValueTransfer = new BigNumber(9051.48); // this is ~90.5148% of 10000
+    const transfers = calcNextValueTransfer(oldPrice, newPrice, THREE_X, EQUAL_POOLS.longBalance, EQUAL_POOLS.shortBalance)
+    expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.toNumber(), 0.01);
+    expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.negated().toNumber(), 0.01);
+
+  });
+  it('Price doubles', () => {
+    const oldPrice = new BigNumber(2000);
+    const newPrice = new BigNumber(4000);
+    const percentageTransfer = calcPercentageLossTransfer(oldPrice, newPrice, THREE_X);
+    expect(percentageTransfer.toNumber()).to.be.bignumber.approximately(0.9051, 0.001);
+
+    // transfer should be approx 90.5148% of the shortBalance
+    const approxValueTransfer = new BigNumber(9051.48); // this is ~90.5148% of 10000
+    const transfers = calcNextValueTransfer(oldPrice, newPrice, THREE_X, EQUAL_POOLS.longBalance, EQUAL_POOLS.shortBalance)
     expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.toNumber(), 0.01);
-    transfers = calcNextValueTransfer(new BigNumber(1), new BigNumber(1.1), THREE_X, LESS_LONG.longBalance, LESS_LONG.shortBalance)
     expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.negated().toNumber(), 0.01);
-    expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.toNumber(), 0.01);
-
-    transfers = calcNextValueTransfer(new BigNumber(1), new BigNumber(1.1), THREE_X, LESS_SHORT.longBalance, LESS_SHORT.shortBalance)
-    approxValueTransfer = new BigNumber(2238.17); // this is 24.86% of 9000
-    expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.approximately(-2238.17, 0.01);
-    expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.approximately(2238.17, 0.01);
   });
-  it('Number goes down 3x', () => {
-    const percentageTransfer = calcPercentageLossTransfer(new BigNumber(1), new BigNumber(0.9), THREE_X);
-    expect(percentageTransfer.toNumber()).to.be.bignumber.equal(0.271);
+  it('Price goes to 0', () => {
+    const oldPrice = new BigNumber(2000);
+    const newPrice = new BigNumber(0);
+    const percentageTransfer = calcPercentageLossTransfer(oldPrice, newPrice, THREE_X);
+    expect(percentageTransfer.toNumber()).to.be.bignumber.approximately(0.995, 0.001);
 
-    // all transfers should be approx 27.1% of the longBalance
-    let approxValueTransfer = new BigNumber(2710); // this is 27.1% of 10000 
-    let transfers = calcNextValueTransfer(new BigNumber(1), new BigNumber(0.9), THREE_X, EQUAL_POOLS.longBalance, EQUAL_POOLS.shortBalance)
-    expect(transfers.shortValueTransfer).to.be.bignumber.equal(approxValueTransfer);
-    expect(transfers.longValueTransfer).to.be.bignumber.equal(approxValueTransfer.negated());
-    transfers = calcNextValueTransfer(new BigNumber(1), new BigNumber(0.9), THREE_X, LESS_SHORT.longBalance, LESS_SHORT.shortBalance)
-    expect(transfers.shortValueTransfer).to.be.bignumber.equal(approxValueTransfer);
-    expect(transfers.longValueTransfer).to.be.bignumber.equal(approxValueTransfer.negated());
-
-    approxValueTransfer = new BigNumber(2439); // this is 27.1% of 9000 
-    transfers = calcNextValueTransfer(new BigNumber(1), new BigNumber(0.9), THREE_X, LESS_LONG.longBalance, LESS_LONG.shortBalance)
-    expect(transfers.shortValueTransfer).to.be.bignumber.equal(approxValueTransfer);
-    expect(transfers.longValueTransfer).to.be.bignumber.equal(approxValueTransfer.negated());
+    // all transfers should be approx 995.054% of the longBalance 
+    const approxValueTransfer = new BigNumber(9950.54); // this is ~995.054% of 10000
+    const transfers = calcNextValueTransfer(oldPrice, newPrice, THREE_X, EQUAL_POOLS.longBalance, EQUAL_POOLS.shortBalance)
+    expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.toNumber(), 0.01);
+    expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.negated().toNumber(), 0.01);
   });
+
+
 });
 
 describe('calcEffectiveGain', () => {
@@ -259,30 +265,6 @@ describe('calcNotionalValue', () => {
     expect(notionalValue).to.be.bignumber.equal(0)
     notionalValue = calcNotionalValue(new BigNumber(2), numTokens)
     expect(notionalValue).to.be.bignumber.equal(200)
-  })
-})
-
-describe('calcLossMultiplier', () => {
-  const oldPrice = new BigNumber(2)
-  it('No price change', () => {
-    const lossMultiplier = calcLossMultiplier(oldPrice, oldPrice)
-    expect(lossMultiplier).to.be.bignumber.equal(1)
-  })
-  it('Price increase', () => {
-    const lossMultiplier = calcLossMultiplier(oldPrice, oldPrice.plus(0.1))
-    expect(lossMultiplier.toNumber()).to.be.bignumber.approximately(0.952, 0.001)
-  })
-  it('Price decrease', () => {
-    const lossMultiplier = calcLossMultiplier(oldPrice, oldPrice.minus(0.1))
-    expect(lossMultiplier).to.be.bignumber.equal(0.95)
-  })
-  it('Zeroed balances', () => {
-    let lossMultiplier = calcLossMultiplier(ZERO, oldPrice.minus(0.1))
-    expect(lossMultiplier).to.be.bignumber.equal(0)
-    lossMultiplier = calcLossMultiplier(oldPrice, ZERO)
-    expect(lossMultiplier).to.be.bignumber.equal(0)
-    lossMultiplier = calcLossMultiplier(ZERO, ZERO)
-    expect(lossMultiplier).to.be.bignumber.equal(0)
   })
 })
 
@@ -487,7 +469,6 @@ describe('getExpectedExecutionTimestamp', () => {
       //              | commitCreated
       let lastUpdate = now; // pool was just updated
       let oldCommit = commitCreated - (2 * updateInterval)
-      let nextUpdate = lastUpdate + updateInterval;
 
       let expectedExeuction = getExpectedExecutionTimestamp(
         frontRunningInterval,
@@ -502,7 +483,6 @@ describe('getExpectedExecutionTimestamp', () => {
       //                      | updateBeforeThat
       //                | commitCreated
       lastUpdate = now + 1;
-      nextUpdate = lastUpdate + updateInterval;
 
       expectedExeuction = getExpectedExecutionTimestamp(
         frontRunningInterval,
