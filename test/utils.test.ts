@@ -93,7 +93,6 @@ describe('calcNextValueTransfer', () => {
 
     // all transfers should be approx 2.942% of the shortBalance
     let approxValueTransfer = new BigNumber(296.942); // this is ~2.942% of 10000
-    console.log(percentageTransfer.toNumber())
     let transfers = calcNextValueTransfer(oldPrice, newPrice, THREE_X, EQUAL_POOLS.longBalance, EQUAL_POOLS.shortBalance)
     expect(transfers.shortValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.negated().toNumber(), 0.01);
     expect(transfers.longValueTransfer.toNumber()).to.be.bignumber.approximately(approxValueTransfer.toNumber(), 0.01);

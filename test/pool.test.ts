@@ -23,7 +23,8 @@ const expected = {
 	lastPriceTimestamp: 1,
 	frontRunningInterval: new BigNumber(FIVE_MINUTES),
 	updateInterval: new BigNumber(ONE_HOUR),
-	leverage: 3
+	leverage: 3,
+	fee: new BigNumber(0.05)// 5%
 }
 
 const USDC: StaticTokenInfo = {
@@ -40,6 +41,7 @@ interface TestConfig {
 		address: string;
 	}
 	leverage: number;
+	fee: string;
 	updateInterval: number;
 	frontRunningInterval: number;
 	longToken: StaticTokenInfo;
@@ -55,6 +57,7 @@ const poolConfig: TestConfig = {
 	name: '3-ETH/USDC',
 	address: '0x54114e9e1eEf979070091186D7102805819e916B',
 	leverage: expected.leverage,
+	fee: actualEthers.utils.parseEther(expected.fee.toString()),
 	updateInterval: expected.updateInterval.toNumber(),
 	frontRunningInterval: expected.frontRunningInterval.toNumber(),
 	keeper: '0x759E817F0C40B11C775d1071d466B5ff5c6ce28e',
@@ -108,6 +111,7 @@ const assertPool: (pool: Pool) => void = (pool) => {
 	expect(pool.longBalance).toEqual(expected.longBalance)
 	expect(pool.shortBalance).toEqual(expected.shortBalance)
 	expect(pool.leverage).toEqual(expected.leverage)
+	expect(pool.fee).toEqual(expected.fee)
 	expect(pool.lastPrice).toEqual(expected.lastPrice)
 	expect(pool.oraclePrice).toEqual(expected.oraclePrice)
 
@@ -122,6 +126,7 @@ const mockPool = {
 	poolCommitter: () => Promise.resolve( poolConfig.committer.address),
 	keeper: () => Promise.resolve( poolConfig.keeper),
 	updateInterval: () => Promise.resolve( poolConfig.updateInterval),
+	fee: () => Promise.resolve( poolConfig.fee),
 	frontRunningInterval: () => Promise.resolve( poolConfig.frontRunningInterval),
 	poolName: () => Promise.resolve( poolConfig.name),
 	tokens: (num: number) => Promise.resolve(num === 0 ? poolConfig.longToken.address : poolConfig.shortToken.address),
@@ -171,6 +176,7 @@ describe('Testing pool constructor', () => {
 		const pool = Pool.CreateDefault();
 		expect(pool.address).toEqual('')
 		expect(pool.name).toEqual('')
+		expect(pool.fee.toNumber()).toEqual(0)
 		expect(pool.keeper).toEqual('')
 		expect(pool.updateInterval.toNumber()).toEqual(0);
 		expect(pool.lastUpdate.toNumber()).toEqual(0);
@@ -213,8 +219,9 @@ describe('Calculating token prices', () => {
 			createPool(poolConfig.address, poolConfig).then((pool) => {
 				expect(pool.getLongTokenPrice().toNumber()).toEqual(0.2)
 				expect(pool.getShortTokenPrice().toNumber()).toEqual(0.1)
-				expect(pool.getNextLongTokenPrice().toNumber()).toEqual(0.2)
-				expect(pool.getNextShortTokenPrice().toNumber()).toEqual(0.1)
+				// subtracts the fee no patter what
+				expect(pool.getNextLongTokenPrice().toNumber()).toEqual(0.195)
+				expect(pool.getNextShortTokenPrice().toNumber()).toEqual(0.095)
 			})
 		)
 	});
@@ -226,14 +233,13 @@ describe('Calculating token prices', () => {
 		}))
 		return (
 			createPool(poolConfig.address, poolConfig).then((pool) => {
-
 				const { shortValueTransfer, longValueTransfer } = pool.getNextValueTransfer();
-				const expectedValueTransfer = new BigNumber('24.8685199098422238915852742299023290758825694966190833959429')
-				expect(shortValueTransfer).toEqual(expectedValueTransfer.negated())
-				expect(longValueTransfer).toEqual(expectedValueTransfer)
+				const expectedValueTransfer = new BigNumber('23.954466465869855517');
+				expect(shortValueTransfer).toEqual(expectedValueTransfer.negated());
+				expect(longValueTransfer).toEqual(expectedValueTransfer);
 
-				const expectedShortTokenPrice = new BigNumber('0.07513148009015777611')
-				const expectedLongTokenPrice = new BigNumber('0.22486851990984222389')
+				const expectedShortTokenPrice = new BigNumber('0.07104553353413014448')
+				const expectedLongTokenPrice = new BigNumber('0.21895446646586985552')
 				expect(pool.getLongTokenPrice().toNumber()).toEqual(0.2)
 				expect(pool.getShortTokenPrice().toNumber()).toEqual(0.1)
 				expect(pool.getNextLongTokenPrice()).toEqual(expectedLongTokenPrice)
@@ -264,16 +270,15 @@ describe('Calculating token prices', () => {
 		}))
 		return (
 			createPool(poolConfig.address, poolConfig).then((pool) => {
-
 				const { shortValueTransfer, longValueTransfer } = pool.getNextValueTransfer();
-				const expectedValueTransfer = new BigNumber('24.8685199098422238915852742299023290758825694966190833959429')
+				const expectedValueTransfer = new BigNumber('23.954466465869855517')
 				expect(shortValueTransfer).toEqual(expectedValueTransfer.negated())
 				expect(longValueTransfer).toEqual(expectedValueTransfer)
 
 				expect(pool.getLongTokenPrice().toNumber()).toEqual(0.2)
 				expect(pool.getShortTokenPrice().toNumber()).toEqual(0.1)
-				const expectedShortTokenPrice = new BigNumber('0.07513148009015777611')
-				const expectedLongTokenPrice = new BigNumber('0.22486851990984222389')
+				const expectedShortTokenPrice = new BigNumber('0.07104553353413014448')
+				const expectedLongTokenPrice = new BigNumber('0.21895446646586985552')
 				expect(pool.getNextLongTokenPrice()).toEqual(expectedLongTokenPrice)
 				expect(pool.getNextShortTokenPrice()).toEqual(expectedShortTokenPrice)
 			})
@@ -281,92 +286,6 @@ describe('Calculating token prices', () => {
 	})
 })
 
-describe('Calculating getNextPoolState', () => {
-	beforeEach(() => {
-		// @ts-ignore
-		Committer.Create.mockImplementation(() => ({
-			pendingLong: {
-				mint: new BigNumber(100),
-				burn: new BigNumber(50),
-			},
-			pendingShort: {
-				mint: new BigNumber(0),
-				burn: new BigNumber(0),
-			},
-		}))
-
-		// @ts-ignore
-		PoolToken.Create.mockImplementation(() => ({
-			supply: new BigNumber(1000),
-			...poolConfig.longToken
-		}))
-	})
-
-
-	it('Price goes up', async () => {
-		// @ts-ignore
-		ethers.Contract.mockImplementation(() => ({
-			...mockPool,
-			getOraclePrice: () => Promise.resolve(ethers.utils.parseEther('1.1')),
-		}))
-		const pool = await createPool(poolConfig.address);
-		const nextPoolState = pool.getNextPoolState();
-
-		const expectedPoolState = {
-			longBalance: new BigNumber('314.1604951522306894205852742299023290758825694966190833959429'),
-			shortBalance: new BigNumber('75.1314800901577761084147257700976709241174305033809166040571'),
-			longTokenPrice: new BigNumber('0.21416049515223068942'),
-			shortTokenPrice: new BigNumber('0.07513148009015777611'),
-			skew: new BigNumber('4.18147619047619047618')
-		}
-
-		// this is currentLongBalance +- valueTransfer + pendingMints - (pendingBurns * nextTokenPrice)
-		// 	where nextTokenPrice = (currentLongBalance +- valueTransfer) / (tokenSupply + pendingBurns)
-		// 	the additional + pendingBurns to tokenSupply is only because the tokenSupply gets reduced on burns
-		// 	but the nextTokenPrice is calculated as if the burn has not already occurred
-		// The supply for the longToken will be 1050 since the mocks have the supply set to 1000
-		// 	as well as a pendingBurn amount of 50. This is because if it was actually fetching the supply
-		// 	from the contracts, the supply would be 950 if a burn of amount 50 occurred when
-		//	the token supply was at 1000
-		expect(nextPoolState.expectedLongBalance).toEqual(expectedPoolState.longBalance)
-		expect(nextPoolState.newLongTokenPrice).toEqual(expectedPoolState.longTokenPrice)
-
-		// this is the same calc except there is no pending commits so it should just be
-		// shortBalance +- valueTransfer
-		expect(nextPoolState.expectedShortBalance).toEqual(expectedPoolState.shortBalance)
-		expect(nextPoolState.newShortTokenPrice).toEqual(expectedPoolState.shortTokenPrice)
-
-		// this is very high
-		expect(nextPoolState.expectedSkew).toEqual(expectedPoolState.skew)
-	})
-	it('Price goes down', async () => {
-		// @ts-ignore
-		ethers.Contract.mockImplementation(() => ({
-			...mockPool,
-			getOraclePrice: () => Promise.resolve(ethers.utils.parseEther('0.9')),
-		}))
-		const pool = await createPool(poolConfig.address);
-		const nextPoolState = pool.getNextPoolState();
-
-		const expectedPoolState = {
-			longBalance: new BigNumber('238.857142857142857143'),
-			shortBalance: new BigNumber('154.2'),
-			longTokenPrice: new BigNumber('0.13885714285714285714'),
-			shortTokenPrice: new BigNumber('0.1542'),
-			skew: new BigNumber('1.54900870854178247174')
-		}
-
-		// this time the value transfer goes to the shorts
-		// since there is already a large skew, the shorts will see a greater gain
-		// 	than 3x
-		// the value transfer in this case is around $54
-		expect(nextPoolState.expectedLongBalance).toEqual(expectedPoolState.longBalance)
-		expect(nextPoolState.newLongTokenPrice).toEqual(expectedPoolState.longTokenPrice)
-
-		expect(nextPoolState.expectedShortBalance).toEqual(expectedPoolState.shortBalance)
-		expect(nextPoolState.newShortTokenPrice).toEqual(expectedPoolState.shortTokenPrice)
-
-		// this is very high
-		expect(nextPoolState.expectedSkew).toEqual(expectedPoolState.skew)
-	})
-})
+// TODO
+// describe('Calculating statePreview', () => {
+// })
