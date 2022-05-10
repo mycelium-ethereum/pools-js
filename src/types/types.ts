@@ -48,18 +48,21 @@ export type TotalPoolCommitmentsBN = {
 export type OraclePriceTransformer = (lastPrice: BigNumber, currentPrice: BigNumber) => BigNumber
 
 export type PoolStatePreviewInputs = {
-  leverage: BigNumber,
-  fee: BigNumber,
+  leverage: BigNumber, // pool leverage
+  fee: BigNumber, // pool fee represented as a decimal 0.05 == 5%
   longBalance: BigNumber,
   shortBalance: BigNumber,
-  longTokenSupply: BigNumber,
+  longTokenSupply: BigNumber, 
   shortTokenSupply: BigNumber,
-  pendingLongTokenBurn: BigNumber,
-  pendingShortTokenBurn: BigNumber,
-  lastOraclePrice: BigNumber,
+  pendingLongTokenBurn: BigNumber, // amount of longTokens being burnt
+  pendingShortTokenBurn: BigNumber, // amount of shortTokens being burnt
+  lastOraclePrice: BigNumber, // last recored oracle price == last upkeep price
   currentOraclePrice: BigNumber,
-  pendingCommits: TotalPoolCommitmentsBN[],
-	oraclePriceTransformer: OraclePriceTransformer
+
+  // TotalCommits for each upkeep.
+  // One entry in this array is the summation of commits for its respective upkeep
+  pendingCommits: TotalPoolCommitmentsBN[], 
+  oraclePriceTransformer: OraclePriceTransformer
 }
 
 export type PoolStatePreview = {

@@ -308,7 +308,7 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
 
 /**
  * calculates the expected state of the pool after applying the given pending commits to the given pool state
- * @param previewInputs
+ * @param object containing current pool state
  * @returns the expected state of the pool
  */
 export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): PoolStatePreview => {
@@ -327,11 +327,8 @@ export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): Poo
         oraclePriceTransformer
     } = previewInputs;
 
-    const longBalanceAfterFee = longBalance.minus(fee.times(longBalance));
-    const shortBalanceAfterFee = shortBalance.minus(fee.times(shortBalance));
-
-    let expectedLongBalance = longBalanceAfterFee;
-    let expectedShortBalance = shortBalanceAfterFee;
+    let expectedLongBalance = longBalance;
+    let expectedShortBalance = shortBalance;
     // tokens are burned on commit, so they are reflected in token supply immediately
     // add the pending burns to the starting supplies
     // as pending commits are executed, the running supply will be reduced based on burns
@@ -345,7 +342,12 @@ export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): Poo
     let movingOraclePriceBefore = lastOraclePrice;
     let movingOraclePriceAfter = lastOraclePrice;
 
+    // each pendingCommit is the summation of all commits for each upkeep in pendingCommits
     for (const pendingCommit of pendingCommits) {
+        // subtract fees each upkeep
+        expectedLongBalance = expectedLongBalance.minus(fee.times(expectedLongBalance));
+        expectedShortBalance = expectedShortBalance.minus(fee.times(expectedShortBalance));
+
         const {
             longBurnPoolTokens,
             longBurnShortMintPoolTokens,
@@ -359,6 +361,7 @@ export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): Poo
         movingOraclePriceBefore = movingOraclePriceAfter;
         movingOraclePriceAfter = oraclePriceTransformer(movingOraclePriceBefore, currentOraclePrice);
 
+        // calc value transfer each upkeep
         const { longValueTransfer, shortValueTransfer } = calcNextValueTransfer(
             movingOraclePriceBefore,
             movingOraclePriceAfter,
