@@ -48,7 +48,8 @@ export type TotalPoolCommitmentsBN = {
 export type OraclePriceTransformer = (lastPrice: BigNumber, currentPrice: BigNumber) => BigNumber
 
 export type PoolStatePreviewInputs = {
-  leverage: number,
+  leverage: BigNumber,
+  fee: BigNumber,
   longBalance: BigNumber,
   shortBalance: BigNumber,
   longTokenSupply: BigNumber,
@@ -68,16 +69,21 @@ export type PoolStatePreview = {
   currentLongSupply: BigNumber,
   currentShortBalance: BigNumber,
   currentShortSupply: BigNumber,
-  expectedSkew: BigNumber,
+  lastOraclePrice: BigNumber,
+  pendingCommits: TotalPoolCommitmentsBN[]
+} & ExpectedStateAfterCommitments;
+
+export type ExpectedStateAfterCommitments = {
   expectedLongBalance: BigNumber,
-  expectedLongSupply: BigNumber,
   expectedShortBalance: BigNumber,
+  expectedLongSupply: BigNumber,
   expectedShortSupply: BigNumber,
-  totalNetPendingLong: BigNumber,
-  totalNetPendingShort: BigNumber,
   expectedLongTokenPrice: BigNumber,
   expectedShortTokenPrice: BigNumber,
-  lastOraclePrice: BigNumber,
   expectedOraclePrice: BigNumber,
-  pendingCommits: TotalPoolCommitmentsBN[]
+  expectedSkew: BigNumber,
+  totalNetPendingLong: BigNumber,
+  totalNetPendingShort: BigNumber,
 }
+
+

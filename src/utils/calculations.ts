@@ -1,5 +1,5 @@
 import { BigNumber } from 'bignumber.js';
-import { PoolStatePreview, PoolStatePreviewInputs } from '../types';
+import { PoolStatePreview, PoolStatePreviewInputs, ExpectedStateAfterCommitments } from '../types';
 
 const UP = 1;
 const DOWN = 2;
@@ -306,12 +306,15 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
     }
 }
 
-/**
- * calculates the expected state of the pool after applying the given pending commits to the given pool state
- * @param previewInputs
- * @returns the expected state of the pool
- */
-export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): PoolStatePreview => {
+export const calcBalancesAfterFees = (longBalance: BigNumber, shortBalance: BigNumber, fee: BigNumber): {
+    longBalance: BigNumber,
+    shortBalance: BigNumber,
+} => ({
+    longBalance: longBalance.minus(fee.times(longBalance)),
+    shortBalance: shortBalance.minus(fee.times(shortBalance))
+})
+
+export const calcExpectedAfterCommitments = (previewInputs: Omit<PoolStatePreviewInputs, 'fee'>): ExpectedStateAfterCommitments => {
     const {
         leverage,
         longBalance,
@@ -325,7 +328,6 @@ export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): Poo
         pendingCommits,
         oraclePriceTransformer
     } = previewInputs;
-
     let expectedLongBalance = longBalance;
     let expectedShortBalance = shortBalance;
     // tokens are burned on commit, so they are reflected in token supply immediately
@@ -404,6 +406,66 @@ export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): Poo
     ? new BigNumber(1)
     : expectedLongBalance.div(expectedShortBalance);
 
+    return ({
+        expectedLongBalance,
+        expectedShortBalance,
+        totalNetPendingLong,
+        totalNetPendingShort,
+        expectedLongSupply,
+        expectedShortSupply,
+        expectedLongTokenPrice,
+        expectedShortTokenPrice,
+        expectedOraclePrice: movingOraclePriceAfter,
+        expectedSkew
+    })
+
+}
+
+/**
+ * calculates the expected state of the pool after applying the given pending commits to the given pool state
+ * @param previewInputs
+ * @returns the expected state of the pool
+ */
+export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): PoolStatePreview => {
+    const {
+        leverage,
+        fee,
+        longBalance,
+        shortBalance,
+        longTokenSupply,
+        shortTokenSupply,
+        pendingLongTokenBurn,
+        pendingShortTokenBurn,
+        lastOraclePrice,
+        currentOraclePrice,
+        pendingCommits,
+    } = previewInputs;
+    // calc balancers after fees
+    const { longBalance: longBalanceAfterFee, shortBalance: shortBalanceAfterFee } = calcBalancesAfterFees(longBalance, shortBalance, fee);
+
+    // calc balances after value transfer
+    const valueTransfer = calcNextValueTransfer(lastOraclePrice, currentOraclePrice, leverage, longBalanceAfterFee, shortBalanceAfterFee)
+    const longBalanceAfterPriceChange = longBalanceAfterFee.plus(valueTransfer.longValueTransfer)
+    const shortBalanceAfterPriceChange = shortBalanceAfterFee.plus(valueTransfer.shortValueTransfer)
+
+    // calc balances after commitments
+    const {
+        expectedLongBalance,
+        expectedShortBalance,
+        expectedLongSupply,
+        expectedShortSupply,
+        expectedLongTokenPrice,
+        expectedShortTokenPrice,
+        expectedOraclePrice,
+        expectedSkew,
+        totalNetPendingLong,
+        totalNetPendingShort,
+    } = calcExpectedAfterCommitments({
+       ...previewInputs,
+       longBalance: longBalanceAfterPriceChange,
+       shortBalance: shortBalanceAfterPriceChange,
+    });
+
     return {
     timestamp: Math.floor(Date.now() / 1000),
     currentSkew: longBalance.eq(0) || shortBalance.eq(0) ? new BigNumber(1) : longBalance.div(shortBalance),
@@ -421,7 +483,7 @@ export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): Poo
     expectedLongTokenPrice,
     expectedShortTokenPrice,
     lastOraclePrice: lastOraclePrice,
-    expectedOraclePrice: movingOraclePriceAfter,
+    expectedOraclePrice,
     pendingCommits
     };
 }
