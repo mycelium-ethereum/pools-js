@@ -468,15 +468,12 @@ export default class Pool {
 			throw Error("Failed to get pool state preview after front running interval: this.committer._contract undefined")
 		}
 		const [
-			longBalance_,
-			shortBalance_
+			longBalance,
+			shortBalance
 		] = await Promise.all([
 			forceRefreshInputs ? (await this.fetchPoolBalances()).longBalance : this.longBalance,
 			forceRefreshInputs ? (await this.fetchPoolBalances()).longBalance : this.shortBalance,
 		])
-
-		const longBalanceAfterFee = longBalance_.minus(this.fee.times(longBalance_));
-		const shortBalanceAfterFee = shortBalance_.minus(this.fee.times(shortBalance_));
 
 		const [
 			pendingCommits,
@@ -498,14 +495,12 @@ export default class Pool {
 			forceRefreshInputs ? this.fetchOraclePrice() : this.oraclePrice,
 		])
 
-		const valueTransfer = calcNextValueTransfer(lastPrice, oraclePrice, new BigNumber(this.leverage), longBalance_, shortBalance_)
-		const longBalanceAfterPriceChange = longBalanceAfterFee.plus(valueTransfer.longValueTransfer)
-		const shortBalanceAfterPriceChange = shortBalanceAfterFee.plus(valueTransfer.shortValueTransfer)
 
 		const poolStatePreview = calcPoolStatePreview({
-			leverage: this.leverage,
-			longBalance: longBalanceAfterPriceChange,
-			shortBalance: shortBalanceAfterPriceChange,
+			leverage: new BigNumber(this.leverage),
+			fee: this.fee,
+			longBalance,
+			shortBalance,
 			longTokenSupply: longTokenSupply,
 			shortTokenSupply: shortTokenSupply,
 			pendingLongTokenBurn: ethersBNtoBN(pendingLongTokenBurn),

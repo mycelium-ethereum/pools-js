@@ -314,6 +314,7 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
 export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): PoolStatePreview => {
     const {
         leverage,
+        fee,
         longBalance,
         shortBalance,
         longTokenSupply,
@@ -326,8 +327,11 @@ export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): Poo
         oraclePriceTransformer
     } = previewInputs;
 
-    let expectedLongBalance = longBalance;
-    let expectedShortBalance = shortBalance;
+    const longBalanceAfterFee = longBalance.minus(fee.times(longBalance));
+    const shortBalanceAfterFee = shortBalance.minus(fee.times(shortBalance));
+
+    let expectedLongBalance = longBalanceAfterFee;
+    let expectedShortBalance = shortBalanceAfterFee;
     // tokens are burned on commit, so they are reflected in token supply immediately
     // add the pending burns to the starting supplies
     // as pending commits are executed, the running supply will be reduced based on burns

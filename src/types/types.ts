@@ -48,7 +48,8 @@ export type TotalPoolCommitmentsBN = {
 export type OraclePriceTransformer = (lastPrice: BigNumber, currentPrice: BigNumber) => BigNumber
 
 export type PoolStatePreviewInputs = {
-  leverage: number,
+  leverage: BigNumber,
+  fee: BigNumber,
   longBalance: BigNumber,
   shortBalance: BigNumber,
   longTokenSupply: BigNumber,
