@@ -10,7 +10,6 @@ export const getMockPendingCommits = (overrides?: Partial<TotalPoolCommitmentsBN
     shortBurnPoolTokens: new BigNumber(0),
     shortBurnLongMintPoolTokens: new BigNumber(0),
     longBurnShortMintPoolTokens: new BigNumber(0),
-    updateIntervalId: new BigNumber(1),
     ...overrides
   };
 };
