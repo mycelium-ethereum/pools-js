@@ -15,7 +15,8 @@ export const getMockPendingCommits = (overrides?: Partial<TotalPoolCommitmentsBN
 };
 
 export const poolStatePreviewInputDefaults = {
-  leverage: 3,
+  leverage: new BigNumber(3),
+  fee: new BigNumber(0),
   longBalance: new BigNumber('120000000000000000000000'),
   shortBalance: new BigNumber('100000000000000000000000'),
   longTokenSupply: new BigNumber('90000000000000000000000'),

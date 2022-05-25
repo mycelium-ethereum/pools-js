@@ -34,6 +34,7 @@ export interface StaticPoolInfo {
 	 */
     frontRunningInterval?: number;
     leverage?: number;
+    fee?: string; // percentage decimal in wei eg 1 * 10 ^18 === 100% 
     keeper?: string;
     committer?: {
 			address: string;
@@ -74,6 +75,7 @@ export default class Pool {
 	updateInterval: BigNumber;
 	frontRunningInterval: BigNumber;
 	leverage: number;
+    fee: BigNumber; // percentage decimal in wei eg 1 * 10 ^18 === 100% 
 	keeper: string;
 	committer: Committer;
 	poolSwapLibrary: PoolSwapLibrary | undefined;
@@ -101,6 +103,7 @@ export default class Pool {
 		this.name = '';
 		this.updateInterval = new BigNumber (0);
 		this.frontRunningInterval = new BigNumber (0);
+		this.fee = new BigNumber(0);
 		this.leverage = 1;
 		this.keeper = '';
 		this.committer = Committer.CreateDefault();
@@ -156,16 +159,17 @@ export default class Pool {
 		)
 		this._contract = contract;
 
-
-		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name] = await Promise.all([
+		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name, fee] = await Promise.all([
 			contract.lastPriceTimestamp(),
 			poolInfo?.committer?.address ? poolInfo?.committer?.address : contract.poolCommitter(),
 			poolInfo?.keeper ? poolInfo?.keeper : contract.keeper(),
 			poolInfo?.updateInterval ? poolInfo?.updateInterval : contract.updateInterval(),
 			poolInfo?.frontRunningInterval ? poolInfo?.frontRunningInterval : contract.frontRunningInterval(),
-			poolInfo?.name ? poolInfo?.name : contract.poolName()
+			poolInfo?.name ? poolInfo?.name : contract.poolName(),
+			poolInfo?.fee && parseInt(ethers.utils.formatEther(poolInfo.fee)) <= 1 ? poolInfo?.fee : contract.fee() // passed fee cant be over 100%
 		]);
 
+		this.fee = new BigNumber(ethers.utils.formatEther(fee));
 
 		const network = await this.provider.getNetwork()
 		this.chainId = network.chainId;
@@ -256,9 +260,11 @@ export default class Pool {
 	public getNextValueTransfer: () => {
 		shortValueTransfer: BigNumber,
 		longValueTransfer: BigNumber,
-	}= () => (
-		calcNextValueTransfer(this.lastPrice, this.oraclePrice, new BigNumber(this.leverage), this.longBalance, this.shortBalance)
-	);
+	}= () => {
+		const longBalanceAfterFee = this.longBalance.minus(this.longBalance.times(this.fee))
+		const shortBalanceAfterFee = this.shortBalance.minus(this.longBalance.times(this.fee))
+		return calcNextValueTransfer(this.lastPrice, this.oraclePrice, new BigNumber(this.leverage), longBalanceAfterFee, shortBalanceAfterFee)
+	};
 
 	/**
 	 * Calculates and returns the long token price.
@@ -288,7 +294,8 @@ export default class Pool {
 		const {
 			longValueTransfer
 		} = this.getNextValueTransfer();
-		return calcTokenPrice(this.longBalance.plus(longValueTransfer), this.longToken.supply.plus(this.committer.pendingLong.burn))
+		const longBalanceAfterFee = this.longBalance.minus(this.fee.times(this.shortBalance));
+		return calcTokenPrice(longBalanceAfterFee.plus(longValueTransfer), this.longToken.supply.plus(this.committer.pendingLong.burn))
 	}
 
 	/**
@@ -299,53 +306,10 @@ export default class Pool {
 	public getNextShortTokenPrice: () => BigNumber = () => {
 		// value transfer is +-
 		const {
-			shortValueTransfer
+			shortValueTransfer,
 		} = this.getNextValueTransfer();
-		return calcTokenPrice(this.shortBalance.plus(shortValueTransfer), this.shortToken.supply.plus(this.committer.pendingShort.burn))
-	}
-
-	/**
-	 * @deprecated, prefer {@linkcode getPoolStatePreview | getPoolStatePreview }
-	 *
-	 * Calculates the resultant pool state as if an upkeep occured at t = now.
-	 * Note: If you were to calculate the token price on these expected balances,
-	 * 	you would have to factor in the amount of new tokens minted from
-	 * 	the pending mint commits. By factoring in the new tokens minted,
-	 * 	you should arrive at the same token price given.
-	 * @returns an object containing the pools expected long and short balances,
-	 * 	the expectedSkew, and the new token prices
-	 */
-	public getNextPoolState: () => {
-		expectedLongBalance: BigNumber,
-		expectedShortBalance: BigNumber,
-		newLongTokenPrice: BigNumber,
-		newShortTokenPrice: BigNumber,
-		expectedSkew: BigNumber,
-		valueTransfer: {
-			longValueTransfer: BigNumber
-			shortValueTransfer: BigNumber
-		}
-	} = () => {
-		const valueTransfer = this.getNextValueTransfer();
-		const newLongTokenPrice = this.getNextLongTokenPrice();
-		const newShortTokenPrice = this.getNextShortTokenPrice();
-
-		const netPendingLong = this.committer.pendingLong.mint.minus(this.committer.pendingLong.burn.times(newLongTokenPrice))
-		const netPendingShort = this.committer.pendingShort.mint.minus(this.committer.pendingShort.burn.times(newShortTokenPrice))
-
-		const expectedLongBalance = this.longBalance.plus(valueTransfer.longValueTransfer).plus(netPendingLong);
-		const expectedShortBalance = this.shortBalance.plus(valueTransfer.shortValueTransfer).plus(netPendingShort);
-
-		const expectedSkew = calcSkew(expectedShortBalance, expectedLongBalance);
-
-		return ({
-			expectedLongBalance,
-			expectedShortBalance,
-			valueTransfer,
-			newLongTokenPrice,
-			newShortTokenPrice,
-			expectedSkew
-		})
+		const shortBalanceAfterFee = this.shortBalance.minus(this.fee.times(this.shortBalance));
+		return calcTokenPrice(shortBalanceAfterFee.plus(shortValueTransfer), this.shortToken.supply.plus(this.committer.pendingShort.burn))
 	}
 
 	/**
@@ -503,13 +467,18 @@ export default class Pool {
 		if(!this.committer._contract) {
 			throw Error("Failed to get pool state preview after front running interval: this.committer._contract undefined")
 		}
+		const [
+			longBalance,
+			shortBalance
+		] = await Promise.all([
+			forceRefreshInputs ? (await this.fetchPoolBalances()).longBalance : this.longBalance,
+			forceRefreshInputs ? (await this.fetchPoolBalances()).longBalance : this.shortBalance,
+		])
 
 		const [
 			pendingCommits,
 			pendingLongTokenBurn,
 			pendingShortTokenBurn,
-			longBalance,
-			shortBalance,
 			longTokenSupply,
 			shortTokenSupply,
 			lastPrice,
@@ -520,18 +489,18 @@ export default class Pool {
 				[(await this.getPendingCommitsInUpdateInterval())],
 			this.committer._contract.pendingLongBurnPoolTokens(),
 			this.committer._contract.pendingShortBurnPoolTokens(),
-			forceRefreshInputs ? (await this.fetchPoolBalances()).longBalance : this.longBalance,
-			forceRefreshInputs ? (await this.fetchPoolBalances()).shortBalance : this.shortBalance,
 			forceRefreshInputs ? this.longToken.fetchSupply() : this.longToken.supply,
 			forceRefreshInputs ? this.shortToken.fetchSupply() : this.shortToken.supply,
 			forceRefreshInputs ? this.fetchLastPrice() : this.lastPrice,
 			forceRefreshInputs ? this.fetchOraclePrice() : this.oraclePrice,
 		])
 
+
 		const poolStatePreview = calcPoolStatePreview({
-			leverage: this.leverage,
-			longBalance: longBalance,
-			shortBalance: shortBalance,
+			leverage: new BigNumber(this.leverage),
+			fee: this.fee,
+			longBalance,
+			shortBalance,
 			longTokenSupply: longTokenSupply,
 			shortTokenSupply: shortTokenSupply,
 			pendingLongTokenBurn: ethersBNtoBN(pendingLongTokenBurn),
