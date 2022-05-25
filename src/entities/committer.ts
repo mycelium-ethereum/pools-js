@@ -21,6 +21,8 @@ export const defaultCommitter = {
 		burn: new BigNumber(0),
 	},
 	settlementTokenDecimals: 18,
+	mintingFee: new BigNumber(0),
+	burningFee: new BigNumber(0),
 } as const
 
 /**
@@ -34,6 +36,9 @@ export default class Committer {
 	address: string;
 	provider: ethers.providers.Provider | ethers.Signer | undefined;
 	settlementTokenDecimals: number;
+	// decimal percenages
+	mintingFee: BigNumber;
+	burningFee: BigNumber;
     pendingLong: PendingAmounts;
     pendingShort: PendingAmounts;
 
@@ -47,6 +52,8 @@ export default class Committer {
 			...defaultCommitter.pendingShort
 		}
 		this.settlementTokenDecimals = defaultCommitter.settlementTokenDecimals;
+		this.mintingFee = defaultCommitter.mintingFee;
+		this.burningFee = defaultCommitter.burningFee;
 	}
 
 	/**
@@ -85,7 +92,17 @@ export default class Committer {
 		this._contract = contract;
 
 		try {
-			const { pendingLong, pendingShort } = await this.fetchAllShadowPools();
+			const [
+				mintingFee,
+				burningFee,
+				{ pendingLong, pendingShort },
+			] = await Promise.all([
+				this._contract.mintingFee(),
+				this._contract.burningFee(),
+				this.fetchAllShadowPools()
+			])
+			this.mintingFee = new BigNumber(ethers.utils.formatEther(mintingFee));
+			this.burningFee = new BigNumber(ethers.utils.formatEther(burningFee));
 			this.pendingShort = pendingShort;
 			this.pendingLong = pendingLong;
 		} catch(error) {

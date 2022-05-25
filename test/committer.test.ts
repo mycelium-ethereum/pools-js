@@ -85,7 +85,9 @@ const mockCommitter = {
 	},
 	pendingLongBurnPoolTokens: async () => ethers.utils.parseUnits(expected.pendingLong.burn.toString(), QUOTE_TOKEN_DECIMALS), // longBurns
 	pendingShortBurnPoolTokens: async () => ethers.utils.parseUnits(expected.pendingShort.burn.toString(), QUOTE_TOKEN_DECIMALS), // shortBurns
-	updateIntervalId: async () => Promise.resolve(() => BigNumber.from(0))
+	updateIntervalId: async () => Promise.resolve(() => BigNumber.from(0)),
+	mintingFee: async () => '0',
+	burningFee: async () => '0'
 }
 
 describe('Testing committer constructor', () => {

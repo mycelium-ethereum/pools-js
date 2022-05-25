@@ -39,4 +39,9 @@ export enum SideEnum {
     short = 1,
 }
 
-
+export enum KnownOracleType {
+    // SMAOracle is an instance of ChainlinkOracleWrapper
+    SMAOracle,
+    // all oracles will conform to ChainlinkOracleWrapper
+    ChainlinkOracleWrapper
+}

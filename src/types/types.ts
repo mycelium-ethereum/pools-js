@@ -81,3 +81,12 @@ export type PoolStatePreview = {
   expectedOraclePrice: BigNumber,
   pendingCommits: TotalPoolCommitmentsBN[]
 }
+
+
+export interface OracleClass<C> {
+	_contract?: C; // they must be ChainlinkOracleWrapper
+	address: string;
+	provider: ethers.providers.Provider | ethers.Signer | undefined;
+
+    getPrice: () => Promise<BigNumber>;
+}

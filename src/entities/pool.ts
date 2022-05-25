@@ -12,9 +12,11 @@ import {
 import PoolToken from "./poolToken";
 import Committer from './committer';
 import { calcNextValueTransfer, calcSkew, calcTokenPrice, calcPoolStatePreview, SideEnum } from "..";
-import { OraclePriceTransformer, PoolStatePreview, TotalPoolCommitmentsBN } from "../types";
+import { OraclePriceTransformer, PoolStatePreview, TotalPoolCommitmentsBN, KnownOracleType } from "../types";
 import { ethersBNtoBN, movingAveragePriceTransformer, pendingCommitsToBN } from "../utils";
 import { poolSwapLibraryByNetwork } from "../data/poolSwapLibraries";
+import SMAOracle from "./smaOracle";
+import Oracle from "./oracle";
 
 
 /**
@@ -41,6 +43,7 @@ export interface StaticPoolInfo {
     shortToken?: TokenInfo;
     longToken?: TokenInfo;
     settlementToken?: TokenInfo;
+	oracleType?: KnownOracleType;
 }
 
 /**
@@ -76,6 +79,7 @@ export default class Pool {
 	leverage: number;
 	keeper: string;
 	committer: Committer;
+	oracle: SMAOracle | Oracle;
 	poolSwapLibrary: PoolSwapLibrary | undefined;
 	shortToken: PoolToken;
 	longToken: PoolToken;
@@ -115,6 +119,9 @@ export default class Pool {
 
 		// default to simple moving average, can be overridden in `Create`
 		this.oraclePriceTransformer = movingAveragePriceTransformer;
+
+		// default to ChainlinkOracleWrapper
+		this.oracle = Oracle.CreateDefault();
 	}
 
 	/**
@@ -155,7 +162,6 @@ export default class Pool {
 			poolInfo.provider
 		)
 		this._contract = contract;
-
 
 		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name] = await Promise.all([
 			contract.lastPriceTimestamp(),
@@ -228,6 +234,20 @@ export default class Pool {
 			...poolInfo.committer
 		})
 		this.committer = poolCommitter;
+
+		if (poolInfo.oracleType === KnownOracleType.SMAOracle) {
+			const smaOracle = await SMAOracle.Create({
+				address: committer,
+				provider: this.provider,
+			})
+			this.oracle = smaOracle;
+		} else {
+			const oracle = await Oracle.Create({
+				address: committer,
+				provider: this.provider,
+			})
+			this.oracle = oracle;
+		}
 
 		const keeperInstance = PoolKeeper__factory.connect(keeper, this.provider)
 		this._keeper = keeperInstance;

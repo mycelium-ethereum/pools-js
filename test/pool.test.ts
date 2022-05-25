@@ -2,6 +2,7 @@ jest.mock('ethers');
 jest.mock('../src/entities/token')
 jest.mock('../src/entities/poolToken')
 jest.mock('../src/entities/committer')
+jest.mock('../src/entities/smaOracle')
 
 import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
@@ -9,11 +10,13 @@ const actualEthers = jest.requireActual('ethers');
 ethers.utils = actualEthers.utils;
 
 import Committer from '../src/entities/committer';
+import SMAOracle from '../src/entities/smaOracle';
 import Pool from '../src/entities/pool'
 import PoolToken from '../src/entities/poolToken';
 import Token from '../src/entities/token';
-import { StaticTokenInfo } from '../src/types';
+import { StaticTokenInfo, KnownOracleType } from '../src/types';
 import { ONE_HOUR, FIVE_MINUTES, USDC_TOKEN_DECIMALS } from './constants';
+// import Oracle from '../src/entities/oracle';
 
 const expected = {
 	longBalance: new BigNumber(200),
@@ -50,6 +53,7 @@ interface TestConfig {
 	shortBalance: number;
 	longBalance: number;
 	oraclePrice: number;
+	oracleType?: KnownOracleType;
 }
 const poolConfig: TestConfig = {
 	name: '3-ETH/USDC',
@@ -146,6 +150,11 @@ beforeEach(() => {
 	Token.Create.mockImplementation(() => ({
 		decimals: poolConfig.settlementToken.decimals
 	}))
+	// @ts-ignore
+	SMAOracle.Create.mockImplementation(() => ({
+		numPeriods: 0,
+		updateInterval: 0
+	}))
 })
 
 describe('Testing pool constructor', () => {
@@ -177,6 +186,8 @@ describe('Testing pool constructor', () => {
 		expect(pool.lastPrice.toNumber()).toEqual(0);
 		expect(pool.shortBalance.toNumber()).toEqual(0);
 		expect(pool.longBalance.toNumber()).toEqual(0);
+		// should be an object since its mocked
+		expect(pool.oracle.constructor.name).toEqual('Oracle');
 		await expect(async () => pool.fetchPoolBalances())
 			.rejects
 			.toThrow('Failed to update pool balances: this._contract undefined')
@@ -190,6 +201,16 @@ describe('Testing pool constructor', () => {
 			.rejects
 			.toThrow('Failed to fetch pools last price timestamp: this._contract undefined')
 		expect(() => pool.connect(null)).toThrow('Failed to connect LeveragedPool: provider cannot be undefined')
+	})
+	it ('Creating with special oracle', async () => {
+		createPool(poolConfig.address, {
+			...poolConfig,
+			oracleType: KnownOracleType.SMAOracle
+		}).then((pool) => {
+			assertPool(pool);
+			// should be an object since its mocked
+			expect(pool.oracle.constructor.name).toEqual('Object');
+		})
 	})
 });
 
