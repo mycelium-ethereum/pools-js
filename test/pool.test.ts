@@ -39,6 +39,7 @@ interface TestConfig {
 	name: string;
 	address: string;
 	keeper: string;
+	oracle: string;
 	committer: {
 		address: string;
 	}
@@ -62,6 +63,7 @@ const poolConfig: TestConfig = {
 	updateInterval: expected.updateInterval.toNumber(),
 	frontRunningInterval: expected.frontRunningInterval.toNumber(),
 	keeper: '0x759E817F0C40B11C775d1071d466B5ff5c6ce28e',
+	oracle: '0x759E817F0C40B11C775d1071d466B5ff5c6ce28e',
 	committer: {
 		address: '0x72c4e7Aa6c743DA4e690Fa7FA66904BC3f2C9C04',
 	},
@@ -124,7 +126,8 @@ const mockPool = {
 	longBalance: () => Promise.resolve( poolConfig.longBalance),
 	getOraclePrice: () => Promise.resolve( poolConfig.oraclePrice),
 	poolCommitter: () => Promise.resolve( poolConfig.committer.address),
-	keeper: () => Promise.resolve( poolConfig.keeper),
+	keeper: () => Promise.resolve(poolConfig.keeper),
+	oracleWrapper: () => Promise.resolve(poolConfig.oracle),
 	updateInterval: () => Promise.resolve( poolConfig.updateInterval),
 	frontRunningInterval: () => Promise.resolve( poolConfig.frontRunningInterval),
 	poolName: () => Promise.resolve( poolConfig.name),

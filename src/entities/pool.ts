@@ -36,7 +36,8 @@ export interface StaticPoolInfo {
 	 */
     frontRunningInterval?: number;
     leverage?: number;
-    keeper?: string;
+    keeper?: string; // address
+	oracle?: string; // address
     committer?: {
 			address: string;
 		}
@@ -163,13 +164,14 @@ export default class Pool {
 		)
 		this._contract = contract;
 
-		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name] = await Promise.all([
+		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name, oracleWrapper] = await Promise.all([
 			contract.lastPriceTimestamp(),
 			poolInfo?.committer?.address ? poolInfo?.committer?.address : contract.poolCommitter(),
 			poolInfo?.keeper ? poolInfo?.keeper : contract.keeper(),
 			poolInfo?.updateInterval ? poolInfo?.updateInterval : contract.updateInterval(),
 			poolInfo?.frontRunningInterval ? poolInfo?.frontRunningInterval : contract.frontRunningInterval(),
-			poolInfo?.name ? poolInfo?.name : contract.poolName()
+			poolInfo?.name ? poolInfo?.name : contract.poolName(),
+			poolInfo?.oracle ? poolInfo.oracle : contract.oracleWrapper(),
 		]);
 
 
@@ -237,13 +239,13 @@ export default class Pool {
 
 		if (poolInfo.oracleType === KnownOracleType.SMAOracle) {
 			const smaOracle = await SMAOracle.Create({
-				address: committer,
+				address: oracleWrapper,
 				provider: this.provider,
 			})
 			this.oracle = smaOracle;
 		} else {
 			const oracle = await Oracle.Create({
-				address: committer,
+				address: oracleWrapper,
 				provider: this.provider,
 			})
 			this.oracle = oracle;
