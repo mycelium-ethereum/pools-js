@@ -97,8 +97,8 @@ export default class Committer {
 				burningFee,
 				{ pendingLong, pendingShort },
 			] = await Promise.all([
-				this._contract.mintingFee(),
-				this._contract.burningFee(),
+				this._contract.getMintingFee(),
+				this._contract.getBurningFee(),
 				this.fetchAllShadowPools()
 			])
 			this.mintingFee = new BigNumber(ethers.utils.formatEther(mintingFee));

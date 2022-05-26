@@ -26,7 +26,8 @@ const expected = {
 	lastPriceTimestamp: 1,
 	frontRunningInterval: new BigNumber(FIVE_MINUTES),
 	updateInterval: new BigNumber(ONE_HOUR),
-	leverage: 3
+	leverage: 3,
+	fee: new BigNumber(0.5)
 }
 
 const USDC: StaticTokenInfo = {
@@ -44,6 +45,7 @@ interface TestConfig {
 		address: string;
 	}
 	leverage: number;
+	fee: number;
 	updateInterval: number;
 	frontRunningInterval: number;
 	longToken: StaticTokenInfo;
@@ -60,6 +62,7 @@ const poolConfig: TestConfig = {
 	name: '3-ETH/USDC',
 	address: '0x54114e9e1eEf979070091186D7102805819e916B',
 	leverage: expected.leverage,
+	fee: expected.fee.toNumber(), // 50% fee
 	updateInterval: expected.updateInterval.toNumber(),
 	frontRunningInterval: expected.frontRunningInterval.toNumber(),
 	keeper: '0x759E817F0C40B11C775d1071d466B5ff5c6ce28e',
@@ -114,6 +117,7 @@ const assertPool: (pool: Pool) => void = (pool) => {
 	expect(pool.longBalance).toEqual(expected.longBalance)
 	expect(pool.shortBalance).toEqual(expected.shortBalance)
 	expect(pool.leverage).toEqual(expected.leverage)
+	expect(pool.fee).toEqual(expected.fee)
 	expect(pool.lastPrice).toEqual(expected.lastPrice)
 	expect(pool.oraclePrice).toEqual(expected.oraclePrice)
 
@@ -133,10 +137,11 @@ const mockPool = {
 	poolName: () => Promise.resolve( poolConfig.name),
 	tokens: (num: number) => Promise.resolve(num === 0 ? poolConfig.longToken.address : poolConfig.shortToken.address),
 	settlementToken: () => Promise.resolve(poolConfig.settlementToken.address),
-	leverageAmount: () => Promise.resolve('0x3fff0000000000000000000000000000'), // 1 in IEE754 binary128
+	getLeverage: () => Promise.resolve('3'),
+	getFee: () => Promise.resolve(ethers.utils.parseEther(poolConfig.fee.toString())),
 
 	// keeper functions
-	executionPrice: () => Promise.resolve( poolConfig.lastPrice),
+	executionPrice: () => Promise.resolve(poolConfig.lastPrice),
 
 	// pool swap library
 	convertDecimalToUInt: () => {

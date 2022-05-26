@@ -6,15 +6,12 @@ import {
     LeveragedPool,
     PoolKeeper__factory,
     PoolKeeper,
-		PoolSwapLibrary__factory,
-		PoolSwapLibrary,
 } from '@tracer-protocol/perpetual-pools-contracts/types';
 import PoolToken from "./poolToken";
 import Committer from './committer';
 import { calcNextValueTransfer, calcSkew, calcTokenPrice, calcPoolStatePreview, SideEnum } from "..";
 import { OraclePriceTransformer, PoolStatePreview, TotalPoolCommitmentsBN, KnownOracleType } from "../types";
 import { ethersBNtoBN, movingAveragePriceTransformer, pendingCommitsToBN } from "../utils";
-import { poolSwapLibraryByNetwork } from "../data/poolSwapLibraries";
 import SMAOracle from "./smaOracle";
 import Oracle from "./oracle";
 
@@ -36,6 +33,7 @@ export interface StaticPoolInfo {
 	 */
     frontRunningInterval?: number;
     leverage?: number;
+	fee?: number;
     keeper?: string; // address
 	oracle?: string; // address
     committer?: {
@@ -78,10 +76,10 @@ export default class Pool {
 	updateInterval: BigNumber;
 	frontRunningInterval: BigNumber;
 	leverage: number;
+	fee: BigNumber; // decimal percentage
 	keeper: string;
 	committer: Committer;
 	oracle: SMAOracle | Oracle;
-	poolSwapLibrary: PoolSwapLibrary | undefined;
 	shortToken: PoolToken;
 	longToken: PoolToken;
 	settlementToken: Token;
@@ -107,6 +105,7 @@ export default class Pool {
 		this.updateInterval = new BigNumber (0);
 		this.frontRunningInterval = new BigNumber (0);
 		this.leverage = 1;
+		this.fee = new BigNumber(0);
 		this.keeper = '';
 		this.committer = Committer.CreateDefault();
 		this.shortToken = PoolToken.CreateDefault();
@@ -164,7 +163,7 @@ export default class Pool {
 		)
 		this._contract = contract;
 
-		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name, oracleWrapper] = await Promise.all([
+		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name, oracleWrapper, fee, leverage] = await Promise.all([
 			contract.lastPriceTimestamp(),
 			poolInfo?.committer?.address ? poolInfo?.committer?.address : contract.poolCommitter(),
 			poolInfo?.keeper ? poolInfo?.keeper : contract.keeper(),
@@ -172,31 +171,16 @@ export default class Pool {
 			poolInfo?.frontRunningInterval ? poolInfo?.frontRunningInterval : contract.frontRunningInterval(),
 			poolInfo?.name ? poolInfo?.name : contract.poolName(),
 			poolInfo?.oracle ? poolInfo.oracle : contract.oracleWrapper(),
+			poolInfo?.fee ? poolInfo.fee : contract.getFee(),
+			poolInfo?.leverage ? poolInfo.leverage : contract.getLeverage()
 		]);
 
 
 		const network = await this.provider.getNetwork()
 		this.chainId = network.chainId;
-		if(poolInfo?.leverage) {
-			this.leverage = poolInfo.leverage
-		} else if(!poolSwapLibraryByNetwork[this.chainId]) {
-			// temp fix since the fetched leverage is in IEEE 128 bit. Get leverage amount from name
-			this.leverage = parseInt(name.split('-')?.[0] ?? 1);
-		} else {
-			try {
-				const poolSwapLibrary = PoolSwapLibrary__factory.connect(
-					poolSwapLibraryByNetwork[this.chainId],
-					this.provider
-				)
 
-				const leverageAmountBytes = await contract.leverageAmount();
-				const convertedLeverage = await poolSwapLibrary.convertDecimalToUInt(leverageAmountBytes);
-
-				this.leverage = convertedLeverage.toNumber();
-			} catch (error) {
-				this.leverage = parseInt(name.split('-')?.[0] ?? 1);
-			}
-		}
+		this.leverage = parseInt(leverage.toString());
+		this.fee = poolInfo.fee ? new BigNumber(poolInfo.fee) : new BigNumber(ethers.utils.formatEther(fee));
 
 		const [longTokenAddress, shortTokenAddress, settlementTokenAddress] = await Promise.all([
 			poolInfo.longToken?.address ? poolInfo.longToken?.address : contract.tokens(0),
