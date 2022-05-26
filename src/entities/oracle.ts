@@ -21,7 +21,7 @@ export interface OracleInfo {
 }
 
 /**
- * Oracle class for interacting with ERC20 tokens
+ * Oracle class for interacting with Chainlink Oracle Wrappers
  * The constructor is private so must be instantiated with {@linkcode Oracle.Create}
  */
 export default class Oracle implements OracleClass<ChainlinkOracleWrapper> {
