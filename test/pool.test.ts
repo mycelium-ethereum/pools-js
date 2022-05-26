@@ -14,7 +14,7 @@ import SMAOracle from '../src/entities/smaOracle';
 import Pool from '../src/entities/pool'
 import PoolToken from '../src/entities/poolToken';
 import Token from '../src/entities/token';
-import { StaticTokenInfo, KnownOracleType } from '../src/types';
+import { StaticTokenInfo } from '../src/types';
 import { ONE_HOUR, FIVE_MINUTES, USDC_TOKEN_DECIMALS } from './constants';
 // import Oracle from '../src/entities/oracle';
 
@@ -56,7 +56,6 @@ interface TestConfig {
 	shortBalance: number;
 	longBalance: number;
 	oraclePrice: number;
-	oracleType?: KnownOracleType;
 }
 const poolConfig: TestConfig = {
 	name: '3-ETH/USDC',
@@ -194,8 +193,9 @@ describe('Testing pool constructor', () => {
 		expect(pool.lastPrice.toNumber()).toEqual(0);
 		expect(pool.shortBalance.toNumber()).toEqual(0);
 		expect(pool.longBalance.toNumber()).toEqual(0);
+		expect(pool.leverage).toEqual(1);
+		expect(pool.fee.toNumber()).toEqual(0);
 		// should be an object since its mocked
-		expect(pool.oracle.constructor.name).toEqual('Oracle');
 		await expect(async () => pool.fetchPoolBalances())
 			.rejects
 			.toThrow('Failed to update pool balances: this._contract undefined')
@@ -213,12 +213,7 @@ describe('Testing pool constructor', () => {
 	it ('Creating with special oracle', async () => {
 		createPool(poolConfig.address, {
 			...poolConfig,
-			oracleType: KnownOracleType.SMAOracle
-		}).then((pool) => {
-			assertPool(pool);
-			// should be an object since its mocked
-			expect(pool.oracle.constructor.name).toEqual('Object');
-		})
+		}).then((pool) => assertPool(pool))
 	})
 });
 

@@ -42,7 +42,6 @@ export interface StaticPoolInfo {
     shortToken?: TokenInfo;
     longToken?: TokenInfo;
     settlementToken?: TokenInfo;
-	oracleType?: KnownOracleType;
 }
 
 /**
@@ -79,7 +78,7 @@ export default class Pool {
 	fee: BigNumber; // decimal percentage
 	keeper: string;
 	committer: Committer;
-	oracle: SMAOracle | Oracle;
+	oracle: SMAOracle;
 	shortToken: PoolToken;
 	longToken: PoolToken;
 	settlementToken: Token;
@@ -120,8 +119,7 @@ export default class Pool {
 		// default to simple moving average, can be overridden in `Create`
 		this.oraclePriceTransformer = movingAveragePriceTransformer;
 
-		// default to ChainlinkOracleWrapper
-		this.oracle = Oracle.CreateDefault();
+		this.oracle = SMAOracle.CreateDefault();
 	}
 
 	/**
@@ -221,19 +219,12 @@ export default class Pool {
 		})
 		this.committer = poolCommitter;
 
-		if (poolInfo.oracleType === KnownOracleType.SMAOracle) {
-			const smaOracle = await SMAOracle.Create({
-				address: oracleWrapper,
-				provider: this.provider,
-			})
-			this.oracle = smaOracle;
-		} else {
-			const oracle = await Oracle.Create({
-				address: oracleWrapper,
-				provider: this.provider,
-			})
-			this.oracle = oracle;
-		}
+		// TODO handle other types of oracles
+		const smaOracle = await SMAOracle.Create({
+			address: oracleWrapper,
+			provider: this.provider,
+		})
+		this.oracle = smaOracle;
 
 		const keeperInstance = PoolKeeper__factory.connect(keeper, this.provider)
 		this._keeper = keeperInstance;
