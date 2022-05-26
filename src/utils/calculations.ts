@@ -5,20 +5,6 @@ const UP = 1;
 const DOWN = 2;
 const NO_CHANGE = 3;
 
-/**
- * Calculate the losing pool multiplier
- * @param newPrice new market price
- * @param oldPrice old market price
- * @param leverage pool leverage
- * @returns ratio if the price direction is down and the inverse of ratio if it is up
- */
-export const calcLossMultiplier: (oldPrice: BigNumber, newPrice: BigNumber) => BigNumber = (oldPrice, newPrice) => {
-    const ratio = calcRatio(oldPrice, newPrice);
-    const direction = calcDirection(oldPrice, newPrice);
-    return direction.eq(UP) // number go up
-        ? new BigNumber(1).div(ratio)
-        : ratio;
-};
 
 /**
  * Calculates the effective multiplier returns for the longs. This amount varies depending on the skew between the long and short balances.
@@ -54,6 +40,7 @@ export const calcEffectiveShortGain: (shortBalance: BigNumber, longBalance: BigN
 // weekly -> 52
 const COMPOUND_FREQUENCY = 52;
 
+
 /**
  * Calculates the compounding gains
  * @param apr annual percentage rate as a decimal
@@ -66,31 +53,23 @@ export const calcAPY: (apr: BigNumber) => BigNumber = (apr) => {
     BigNumber.config({ POW_PRECISION: 0 })
     return apy;
 }
-/**
- *
- * Calculates the leverage multiplier of the losing pool.
- * This multiplier is used to {@linkcode calcLeverageLossTransfer| calculate the percentage loss transfer} between the pools.
- * @param newPrice new market price
- * @param oldPrice old market price
- * @param leverage pool leverage
- * @returns ratio^leverage if the price direction is down and the (1/ratio)^leverage if it is up
- */
-export const calcLeverageLossMultiplier: (oldPrice: BigNumber, newPrice: BigNumber, leverage: BigNumber) => BigNumber =
-    (oldPrice, newPrice, leverage) => {
-        return calcLossMultiplier(oldPrice, newPrice).pow(leverage);
-    };
 
 /**
  * Calculates the percentage the losing pool must transfer to the winning pool on next upKeep.
+ * JS implementation of https://github.com/tracer-protocol/perpetual-pools-contracts/blob/pools-v2/contracts/libraries/PoolSwapLibrary.sol#L348-L362
  * @param oldPrice old market price
  * @param newPrice new market price
  * @param leverage pool leverage
- * @returns the percentage loss transfer as a decimal
+ * @returns the percentage the losing pool must transfer
+ *  2 / (1 + e^(-2 * leverage * (1 - (oldPrice / newPrice)))) - 1
  */
 export const calcPercentageLossTransfer: (oldPrice: BigNumber, newPrice: BigNumber, leverage: BigNumber) => BigNumber =
     (oldPrice, newPrice, leverage) => {
-        return new BigNumber(1).minus(calcLeverageLossMultiplier(oldPrice, newPrice, leverage));
-    };
+    const ONE = new BigNumber(1);
+    const TWO = new BigNumber(2);
+    const priceRatio: BigNumber = newPrice >= oldPrice ? oldPrice.div(newPrice) : newPrice.div(oldPrice);
+    return TWO.div(ONE.plus(Math.exp(TWO.negated().times(leverage).times(ONE.minus(priceRatio)).toNumber()))).minus(1)
+}
 
 /**
  * Calculates the notional value of tokens
@@ -329,12 +308,13 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
 
 /**
  * calculates the expected state of the pool after applying the given pending commits to the given pool state
- * @param previewInputs
+ * @param object containing current pool state
  * @returns the expected state of the pool
  */
 export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): PoolStatePreview => {
     const {
         leverage,
+        fee,
         longBalance,
         shortBalance,
         longTokenSupply,
@@ -362,7 +342,12 @@ export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): Poo
     let movingOraclePriceBefore = lastOraclePrice;
     let movingOraclePriceAfter = lastOraclePrice;
 
+    // each pendingCommit is the summation of all commits for each upkeep in pendingCommits
     for (const pendingCommit of pendingCommits) {
+        // subtract fees each upkeep
+        expectedLongBalance = expectedLongBalance.minus(fee.times(expectedLongBalance));
+        expectedShortBalance = expectedShortBalance.minus(fee.times(expectedShortBalance));
+
         const {
             longBurnPoolTokens,
             longBurnShortMintPoolTokens,
@@ -376,6 +361,7 @@ export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): Poo
         movingOraclePriceBefore = movingOraclePriceAfter;
         movingOraclePriceAfter = oraclePriceTransformer(movingOraclePriceBefore, currentOraclePrice);
 
+        // calc value transfer each upkeep
         const { longValueTransfer, shortValueTransfer } = calcNextValueTransfer(
             movingOraclePriceBefore,
             movingOraclePriceAfter,
