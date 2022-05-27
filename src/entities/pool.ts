@@ -6,6 +6,7 @@ import {
     LeveragedPool,
     PoolKeeper__factory,
     PoolKeeper,
+	PoolSwapLibrary__factory,
 } from '@tracer-protocol/perpetual-pools-contracts/types';
 import PoolToken from "./poolToken";
 import Committer from './committer';
@@ -13,6 +14,7 @@ import { calcNextValueTransfer, calcSkew, calcTokenPrice, calcPoolStatePreview, 
 import { OraclePriceTransformer, PoolStatePreview, TotalPoolCommitmentsBN } from "../types";
 import { ethersBNtoBN, movingAveragePriceTransformer, pendingCommitsToBN, SECONDS_PER_LEAP_YEAR } from "../utils";
 import SMAOracle from "./smaOracle";
+import {poolSwapLibraryByNetwork} from "../data/poolSwapLibraries";
 
 
 /**
@@ -161,7 +163,7 @@ export default class Pool {
 		)
 		this._contract = contract;
 
-		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name, oracleWrapper, fee, leverage] = await Promise.all([
+		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name, oracleWrapper] = await Promise.all([
 			contract.lastPriceTimestamp(),
 			poolInfo?.committer?.address ? poolInfo?.committer?.address : contract.poolCommitter(),
 			poolInfo?.keeper ? poolInfo?.keeper : contract.keeper(),
@@ -169,15 +171,46 @@ export default class Pool {
 			poolInfo?.frontRunningInterval ? poolInfo?.frontRunningInterval : contract.frontRunningInterval(),
 			poolInfo?.name ? poolInfo?.name : contract.poolName(),
 			poolInfo?.oracle ? poolInfo.oracle : contract.oracleWrapper(),
-			poolInfo?.fee && parseInt(ethers.utils.formatEther(poolInfo.fee)) <= 1 ? poolInfo?.fee : contract.getFee(), // passed fee cant be over 100%
-			poolInfo?.leverage ? poolInfo.leverage : contract.getLeverage()
 		]);
-
-		this.fee = new BigNumber(ethers.utils.formatEther(fee));
-		this.leverage = parseInt(leverage.toString());
 
 		const network = await this.provider.getNetwork()
 		this.chainId = network.chainId;
+
+		const poolSwapLibrary = poolSwapLibraryByNetwork[this.chainId] ? PoolSwapLibrary__factory.connect(
+			poolSwapLibraryByNetwork[this.chainId],
+			this.provider
+		): undefined;
+
+		// not sure what to do here
+		const defaultFee = new BigNumber(0);
+
+		if(!poolSwapLibrary) {
+			// temp fix since the fetched leverage is in IEEE 128 bit. Get leverage amount from name
+			this.leverage = poolInfo?.leverage ?? parseInt(name.split('-')?.[0] ?? 1);
+			if (poolInfo?.fee) {
+				const parsedFee = new BigNumber(ethers.utils.formatEther(poolInfo.fee))
+				// parsedFee cant be over 100%
+				this.fee = parsedFee.lte(1) ? parsedFee : defaultFee;
+			} else {
+				this.fee = defaultFee;
+			}
+		} else {
+			try {
+				const leverageAmountBytes = await contract.leverageAmount();
+				const convertedLeverage = await poolSwapLibrary.convertDecimalToUInt(leverageAmountBytes);
+				this.leverage = convertedLeverage.toNumber();
+			} catch (error) {
+				this.leverage = parseInt(name.split('-')?.[0] ?? 1);
+			}
+
+			try {
+				const feeAmountBytes = await contract.fee();
+				const convertedFee = await poolSwapLibrary.convertDecimalToUInt(feeAmountBytes);
+				this.fee = new BigNumber(ethers.utils.formatEther(convertedFee).toString());
+			} catch (error) {
+				this.fee = defaultFee;
+			}
+		}
 
 		const [longTokenAddress, shortTokenAddress, settlementTokenAddress] = await Promise.all([
 			poolInfo.longToken?.address ? poolInfo.longToken?.address : contract.tokens(0),
@@ -442,6 +475,50 @@ export default class Pool {
 	}
 
 	/**
+	 * @deprecated, prefer {@linkcode getPoolStatePreview | getPoolStatePreview }
+	 *
+	 * Calculates the resultant pool state as if an upkeep occured at t = now.
+	 * Note: If you were to calculate the token price on these expected balances,
+	 * 	you would have to factor in the amount of new tokens minted from
+	 * 	the pending mint commits. By factoring in the new tokens minted,
+	 * 	you should arrive at the same token price given.
+	 * @returns an object containing the pools expected long and short balances,
+	 * 	the expectedSkew, and the new token prices
+	 */
+	public getNextPoolState: () => {
+		expectedLongBalance: BigNumber,
+		expectedShortBalance: BigNumber,
+		newLongTokenPrice: BigNumber,
+		newShortTokenPrice: BigNumber,
+		expectedSkew: BigNumber,
+		valueTransfer: {
+			longValueTransfer: BigNumber
+			shortValueTransfer: BigNumber
+		}
+	} = () => {
+		const valueTransfer = this.getNextValueTransfer();
+		const newLongTokenPrice = this.getNextLongTokenPrice();
+		const newShortTokenPrice = this.getNextShortTokenPrice();
+
+		const netPendingLong = this.committer.pendingLong.mint.minus(this.committer.pendingLong.burn.times(newLongTokenPrice))
+		const netPendingShort = this.committer.pendingShort.mint.minus(this.committer.pendingShort.burn.times(newShortTokenPrice))
+
+		const expectedLongBalance = this.longBalance.plus(valueTransfer.longValueTransfer).plus(netPendingLong);
+		const expectedShortBalance = this.shortBalance.plus(valueTransfer.shortValueTransfer).plus(netPendingShort);
+
+		const expectedSkew = calcSkew(expectedShortBalance, expectedLongBalance);
+
+		return ({
+			expectedLongBalance,
+			expectedShortBalance,
+			valueTransfer,
+			newLongTokenPrice,
+			newShortTokenPrice,
+			expectedSkew
+		})
+	}
+
+	/**
 	 *
 	 * @param atEndOf whether to fetch preview for end of update interval or front running interval
 	 * @param forceRefreshInputs if `true`, will refresh
@@ -527,7 +604,7 @@ export default class Pool {
 		if (this.updateInterval.eq(0)) {
 			return new BigNumber(0);
 		}
-		return (this.fee.times(SECONDS_PER_LEAP_YEAR)).div(this.updateInterval)
+		return this.fee.times(SECONDS_PER_LEAP_YEAR).div(this.updateInterval)
 	}
 
 	/**

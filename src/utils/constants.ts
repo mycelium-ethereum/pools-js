@@ -17,4 +17,4 @@ export const TEST_QUOTE_TOKEN = {
     decimals: TEST_TOKEN_DECIMALS,
 }
 
-export const SECONDS_PER_LEAP_YEAR = 31622400;
+export const SECONDS_PER_LEAP_YEAR = 31556952;

@@ -15,7 +15,7 @@ import Pool from '../src/entities/pool'
 import PoolToken from '../src/entities/poolToken';
 import Token from '../src/entities/token';
 import { StaticTokenInfo } from '../src/types';
-import { ONE_HOUR, FIVE_MINUTES, USDC_TOKEN_DECIMALS } from './constants';
+import { FIVE_MINUTES, ONE_MINUTE, USDC_TOKEN_DECIMALS } from './constants';
 // import Oracle from '../src/entities/oracle';
 
 const expected = {
@@ -24,14 +24,12 @@ const expected = {
 	lastPrice: new BigNumber(1),
 	oraclePrice: new BigNumber(1),
 	lastPriceTimestamp: 1,
-	frontRunningInterval: new BigNumber(FIVE_MINUTES),
-	updateInterval: new BigNumber(ONE_HOUR),
+	frontRunningInterval: new BigNumber(ONE_MINUTE),
+	updateInterval: new BigNumber(FIVE_MINUTES),
 	leverage: 3,
-	fee: new BigNumber(0.05), // 5%
-	// with a fee of 5%, there will be an estimated YEAR_IN_SECONDS / updateInterval === 8784 upkeeps
-	// this will result in an unrealistic 439.2% taken from the pools each year
-	// 0.05 * 8784 == 439.2%
-	annualFee: 439.2
+	fee: new BigNumber('0.0000000955'), // very small percent
+	// annualFee 1%
+	annualFee: 0.01
 
 }
 
@@ -66,7 +64,7 @@ const poolConfig: TestConfig = {
 	name: '3-ETH/USDC',
 	address: '0x54114e9e1eEf979070091186D7102805819e916B',
 	leverage: expected.leverage,
-	fee: actualEthers.utils.parseEther(expected.fee.toString()),
+	fee: expected.fee.times(10**18).toString(),
 	updateInterval: expected.updateInterval.toNumber(),
 	frontRunningInterval: expected.frontRunningInterval.toNumber(),
 	keeper: '0x759E817F0C40B11C775d1071d466B5ff5c6ce28e',
@@ -137,20 +135,28 @@ const mockPool = {
 	keeper: () => Promise.resolve(poolConfig.keeper),
 	oracleWrapper: () => Promise.resolve(poolConfig.oracle),
 	updateInterval: () => Promise.resolve( poolConfig.updateInterval),
-	fee: () => Promise.resolve( poolConfig.fee),
 	frontRunningInterval: () => Promise.resolve( poolConfig.frontRunningInterval),
 	poolName: () => Promise.resolve( poolConfig.name),
 	tokens: (num: number) => Promise.resolve(num === 0 ? poolConfig.longToken.address : poolConfig.shortToken.address),
 	settlementToken: () => Promise.resolve(poolConfig.settlementToken.address),
-	getLeverage: () => Promise.resolve('3'),
-	getFee: () => Promise.resolve(actualEthers.utils.parseEther(expected.fee.toString())),
+	// getLeverage: () => Promise.resolve('3'),
+	// getFee: () => Promise.resolve(actualEthers.utils.parseEther(expected.fee.toString())),
+
+	// fee: () => Promise.resolve(poolConfig.fee),
+	fee : () => Promise.resolve('0x4027099ca7f485000000000000000000'), // 0.01 * 10^18 in IEE754 binary128
+	leverageAmount: () => Promise.resolve('0x3fff0000000000000000000000000000'), // 3 in IEE754 binary128
 
 	// keeper functions
 	executionPrice: () => Promise.resolve(poolConfig.lastPrice),
 
 	// pool swap library
-	convertDecimalToUInt: () => {
-		return Promise.resolve(actualEthers.BigNumber.from(poolConfig.leverage))
+	convertDecimalToUInt: (amount) => {
+		// fee
+		if (amount === '0x4027099ca7f485000000000000000000') {
+			return Promise.resolve(actualEthers.BigNumber.from(poolConfig.fee))
+		} else {
+			return Promise.resolve(actualEthers.BigNumber.from(poolConfig.leverage))
+		}
 	}
 }
 
@@ -245,8 +251,8 @@ describe('Calculating token prices', () => {
 				expect(pool.getLongTokenPrice().toNumber()).toEqual(0.2)
 				expect(pool.getShortTokenPrice().toNumber()).toEqual(0.1)
 				// subtracts the fee no patter what
-				expect(pool.getNextLongTokenPrice().toNumber()).toEqual(0.195)
-				expect(pool.getNextShortTokenPrice().toNumber()).toEqual(0.095)
+				expect(pool.getNextLongTokenPrice().toNumber()).toEqual(0.19999999045)
+				expect(pool.getNextShortTokenPrice().toNumber()).toEqual(0.09999999045)
 			})
 		)
 	});
@@ -259,12 +265,12 @@ describe('Calculating token prices', () => {
 		return (
 			createPool(poolConfig.address, poolConfig).then((pool) => {
 				const { shortValueTransfer, longValueTransfer } = pool.getNextValueTransfer();
-				const expectedValueTransfer = new BigNumber('23.954466465869855517');
+				const expectedValueTransfer = new BigNumber('26.61606876729640059539732917');
 				expect(shortValueTransfer).toEqual(expectedValueTransfer.negated());
 				expect(longValueTransfer).toEqual(expectedValueTransfer);
 
-				const expectedShortTokenPrice = new BigNumber('0.07104553353413014448')
-				const expectedLongTokenPrice = new BigNumber('0.21895446646586985552')
+				const expectedShortTokenPrice = new BigNumber('0.0733839216827035994');
+				const expectedLongTokenPrice = new BigNumber('0.2266160592172964006');
 				expect(pool.getLongTokenPrice().toNumber()).toEqual(0.2)
 				expect(pool.getShortTokenPrice().toNumber()).toEqual(0.1)
 				expect(pool.getNextLongTokenPrice()).toEqual(expectedLongTokenPrice)
@@ -296,14 +302,14 @@ describe('Calculating token prices', () => {
 		return (
 			createPool(poolConfig.address, poolConfig).then((pool) => {
 				const { shortValueTransfer, longValueTransfer } = pool.getNextValueTransfer();
-				const expectedValueTransfer = new BigNumber('23.954466465869855517')
+				const expectedValueTransfer = new BigNumber('26.61606876729640059539732917');
 				expect(shortValueTransfer).toEqual(expectedValueTransfer.negated())
 				expect(longValueTransfer).toEqual(expectedValueTransfer)
 
 				expect(pool.getLongTokenPrice().toNumber()).toEqual(0.2)
 				expect(pool.getShortTokenPrice().toNumber()).toEqual(0.1)
-				const expectedShortTokenPrice = new BigNumber('0.07104553353413014448')
-				const expectedLongTokenPrice = new BigNumber('0.21895446646586985552')
+				const expectedShortTokenPrice = new BigNumber('0.0733839216827035994')
+				const expectedLongTokenPrice = new BigNumber('0.2266160592172964006')
 				expect(pool.getNextLongTokenPrice()).toEqual(expectedLongTokenPrice)
 				expect(pool.getNextShortTokenPrice()).toEqual(expectedShortTokenPrice)
 			})
@@ -313,15 +319,17 @@ describe('Calculating token prices', () => {
 
 describe('Calculating annual fee', () => {
 	it('handles no input', () => {
-		return createPool(poolConfig.address).then((pool) => (
-			expect(pool.getAnnualFee().toNumber()).toEqual(expected.annualFee)
-		))
+		return createPool(poolConfig.address).then((pool) => {
+			expect(pool.fee.toString()).toEqual(expected.fee.toString())
+			expect(pool.getAnnualFee().toFixed(2)).toEqual(expected.annualFee.toFixed(2))
+		})
 	}),
 	it('handles full input', () => {
 		return (
-			createPool(poolConfig.address, poolConfig).then((pool) => (
-				expect(pool.getAnnualFee().toNumber()).toEqual(expected.annualFee)
-			))
+			createPool(poolConfig.address, poolConfig).then((pool) => {
+				expect(pool.fee.toString()).toEqual(expected.fee.toString())
+				expect(pool.getAnnualFee().toFixed(2)).toEqual(expected.annualFee.toFixed(2))
+			})
 		)
 	})
 
