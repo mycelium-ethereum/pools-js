@@ -475,50 +475,6 @@ export default class Pool {
 	}
 
 	/**
-	 * @deprecated, prefer {@linkcode getPoolStatePreview | getPoolStatePreview }
-	 *
-	 * Calculates the resultant pool state as if an upkeep occured at t = now.
-	 * Note: If you were to calculate the token price on these expected balances,
-	 * 	you would have to factor in the amount of new tokens minted from
-	 * 	the pending mint commits. By factoring in the new tokens minted,
-	 * 	you should arrive at the same token price given.
-	 * @returns an object containing the pools expected long and short balances,
-	 * 	the expectedSkew, and the new token prices
-	 */
-	public getNextPoolState: () => {
-		expectedLongBalance: BigNumber,
-		expectedShortBalance: BigNumber,
-		newLongTokenPrice: BigNumber,
-		newShortTokenPrice: BigNumber,
-		expectedSkew: BigNumber,
-		valueTransfer: {
-			longValueTransfer: BigNumber
-			shortValueTransfer: BigNumber
-		}
-	} = () => {
-		const valueTransfer = this.getNextValueTransfer();
-		const newLongTokenPrice = this.getNextLongTokenPrice();
-		const newShortTokenPrice = this.getNextShortTokenPrice();
-
-		const netPendingLong = this.committer.pendingLong.mint.minus(this.committer.pendingLong.burn.times(newLongTokenPrice))
-		const netPendingShort = this.committer.pendingShort.mint.minus(this.committer.pendingShort.burn.times(newShortTokenPrice))
-
-		const expectedLongBalance = this.longBalance.plus(valueTransfer.longValueTransfer).plus(netPendingLong);
-		const expectedShortBalance = this.shortBalance.plus(valueTransfer.shortValueTransfer).plus(netPendingShort);
-
-		const expectedSkew = calcSkew(expectedShortBalance, expectedLongBalance);
-
-		return ({
-			expectedLongBalance,
-			expectedShortBalance,
-			valueTransfer,
-			newLongTokenPrice,
-			newShortTokenPrice,
-			expectedSkew
-		})
-	}
-
-	/**
 	 *
 	 * @param atEndOf whether to fetch preview for end of update interval or front running interval
 	 * @param forceRefreshInputs if `true`, will refresh
