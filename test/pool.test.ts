@@ -27,7 +27,12 @@ const expected = {
 	frontRunningInterval: new BigNumber(FIVE_MINUTES),
 	updateInterval: new BigNumber(ONE_HOUR),
 	leverage: 3,
-	fee: new BigNumber(0.05)// 5%
+	fee: new BigNumber(0.05), // 5%
+	// with a fee of 5%, there will be an estimated YEAR_IN_SECONDS / updateInterval === 8784 upkeeps
+	// this will result in an unrealistic 439.2% taken from the pools each year
+	// 0.05 * 8784 == 439.2%
+	annualFee: 439.2
+
 }
 
 const USDC: StaticTokenInfo = {
@@ -303,6 +308,26 @@ describe('Calculating token prices', () => {
 				expect(pool.getNextShortTokenPrice()).toEqual(expectedShortTokenPrice)
 			})
 		)
+	})
+})
+
+describe('Calculating annual fee', () => {
+	it('handles no input', () => {
+		return createPool(poolConfig.address).then((pool) => (
+			expect(pool.getAnnualFee().toNumber()).toEqual(expected.annualFee)
+		))
+	}),
+	it('handles full input', () => {
+		return (
+			createPool(poolConfig.address, poolConfig).then((pool) => (
+				expect(pool.getAnnualFee().toNumber()).toEqual(expected.annualFee)
+			))
+		)
+	})
+
+	it('handles default', () => {
+		const pool = Pool.CreateDefault();
+		expect(pool.getAnnualFee().toNumber()).toEqual(0);
 	})
 })
 

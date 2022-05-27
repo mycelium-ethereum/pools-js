@@ -11,7 +11,7 @@ import PoolToken from "./poolToken";
 import Committer from './committer';
 import { calcNextValueTransfer, calcSkew, calcTokenPrice, calcPoolStatePreview, SideEnum } from "..";
 import { OraclePriceTransformer, PoolStatePreview, TotalPoolCommitmentsBN } from "../types";
-import { ethersBNtoBN, movingAveragePriceTransformer, pendingCommitsToBN } from "../utils";
+import { ethersBNtoBN, movingAveragePriceTransformer, pendingCommitsToBN, SECONDS_PER_LEAP_YEAR } from "../utils";
 import SMAOracle from "./smaOracle";
 
 
@@ -521,6 +521,13 @@ export default class Pool {
 		this.longToken.connect(provider);
 		this.shortToken.connect(provider);
 		this.settlementToken.connect(provider);
+	}
+
+	public getAnnualFee: () => BigNumber = () => {
+		if (this.updateInterval.eq(0)) {
+			return new BigNumber(0);
+		}
+		return (this.fee.times(SECONDS_PER_LEAP_YEAR)).div(this.updateInterval)
 	}
 
 	/**
