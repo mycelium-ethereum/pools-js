@@ -415,7 +415,7 @@ export default class Pool {
 			// or one after if committed within the front running interval
 
 			const pendingCommitsThisInterval = await this.committer._contract.totalPoolCommitments(updateIntervalId);
-			return [pendingCommitsToBN(pendingCommitsThisInterval)];
+			return [pendingCommitsToBN(pendingCommitsThisInterval, this.settlementToken.decimals)];
     }
 
     const upkeepsPerFrontRunningInterval = Math.floor(this.frontRunningInterval.div(this.updateInterval).toNumber());
@@ -427,7 +427,7 @@ export default class Pool {
     for (let i = updateIntervalId; i <= maxIntervalId; i++) {
 			pendingCommitPromises.push(
 				this.committer._contract.totalPoolCommitments(i)
-				.then(totalPoolCommitments => pendingCommitsToBN(totalPoolCommitments))
+				.then(totalPoolCommitments => pendingCommitsToBN(totalPoolCommitments, this.settlementToken.decimals))
 			)
     }
 
@@ -472,7 +472,7 @@ export default class Pool {
 			shortBalance
 		] = await Promise.all([
 			forceRefreshInputs ? (await this.fetchPoolBalances()).longBalance : this.longBalance,
-			forceRefreshInputs ? (await this.fetchPoolBalances()).longBalance : this.shortBalance,
+			forceRefreshInputs ? (await this.fetchPoolBalances()).shortBalance : this.shortBalance,
 		])
 
 		const [
