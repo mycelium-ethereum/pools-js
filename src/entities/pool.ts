@@ -6,15 +6,13 @@ import {
     LeveragedPool,
     PoolKeeper__factory,
     PoolKeeper,
-		PoolSwapLibrary__factory,
-		PoolSwapLibrary,
 } from '@tracer-protocol/perpetual-pools-contracts/types';
 import PoolToken from "./poolToken";
 import Committer from './committer';
 import { calcNextValueTransfer, calcSkew, calcTokenPrice, calcPoolStatePreview, SideEnum } from "..";
 import { OraclePriceTransformer, PoolStatePreview, TotalPoolCommitmentsBN } from "../types";
-import { ethersBNtoBN, movingAveragePriceTransformer, pendingCommitsToBN } from "../utils";
-import { poolSwapLibraryByNetwork } from "../data/poolSwapLibraries";
+import { ethersBNtoBN, movingAveragePriceTransformer, pendingCommitsToBN, SECONDS_PER_LEAP_YEAR } from "../utils";
+import SMAOracle from "./smaOracle";
 
 
 /**
@@ -35,7 +33,8 @@ export interface StaticPoolInfo {
     frontRunningInterval?: number;
     leverage?: number;
     fee?: string; // percentage decimal in wei eg 1 * 10 ^18 === 100% 
-    keeper?: string;
+    keeper?: string; // address
+	oracle?: string; // address
     committer?: {
 			address: string;
 		}
@@ -78,7 +77,7 @@ export default class Pool {
     fee: BigNumber; // percentage decimal in wei eg 1 * 10 ^18 === 100% 
 	keeper: string;
 	committer: Committer;
-	poolSwapLibrary: PoolSwapLibrary | undefined;
+	oracle: SMAOracle;
 	shortToken: PoolToken;
 	longToken: PoolToken;
 	settlementToken: Token;
@@ -105,6 +104,7 @@ export default class Pool {
 		this.frontRunningInterval = new BigNumber (0);
 		this.fee = new BigNumber(0);
 		this.leverage = 1;
+		this.fee = new BigNumber(0);
 		this.keeper = '';
 		this.committer = Committer.CreateDefault();
 		this.shortToken = PoolToken.CreateDefault();
@@ -118,6 +118,8 @@ export default class Pool {
 
 		// default to simple moving average, can be overridden in `Create`
 		this.oraclePriceTransformer = movingAveragePriceTransformer;
+
+		this.oracle = SMAOracle.CreateDefault();
 	}
 
 	/**
@@ -159,40 +161,23 @@ export default class Pool {
 		)
 		this._contract = contract;
 
-		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name, fee] = await Promise.all([
+		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name, oracleWrapper, fee, leverage] = await Promise.all([
 			contract.lastPriceTimestamp(),
 			poolInfo?.committer?.address ? poolInfo?.committer?.address : contract.poolCommitter(),
 			poolInfo?.keeper ? poolInfo?.keeper : contract.keeper(),
 			poolInfo?.updateInterval ? poolInfo?.updateInterval : contract.updateInterval(),
 			poolInfo?.frontRunningInterval ? poolInfo?.frontRunningInterval : contract.frontRunningInterval(),
 			poolInfo?.name ? poolInfo?.name : contract.poolName(),
-			poolInfo?.fee && parseInt(ethers.utils.formatEther(poolInfo.fee)) <= 1 ? poolInfo?.fee : contract.fee() // passed fee cant be over 100%
+			poolInfo?.oracle ? poolInfo.oracle : contract.oracleWrapper(),
+			poolInfo?.fee && parseInt(ethers.utils.formatEther(poolInfo.fee)) <= 1 ? poolInfo?.fee : contract.getFee(), // passed fee cant be over 100%
+			poolInfo?.leverage ? poolInfo.leverage : contract.getLeverage()
 		]);
 
 		this.fee = new BigNumber(ethers.utils.formatEther(fee));
+		this.leverage = parseInt(leverage.toString());
 
 		const network = await this.provider.getNetwork()
 		this.chainId = network.chainId;
-		if(poolInfo?.leverage) {
-			this.leverage = poolInfo.leverage
-		} else if(!poolSwapLibraryByNetwork[this.chainId]) {
-			// temp fix since the fetched leverage is in IEEE 128 bit. Get leverage amount from name
-			this.leverage = parseInt(name.split('-')?.[0] ?? 1);
-		} else {
-			try {
-				const poolSwapLibrary = PoolSwapLibrary__factory.connect(
-					poolSwapLibraryByNetwork[this.chainId],
-					this.provider
-				)
-
-				const leverageAmountBytes = await contract.leverageAmount();
-				const convertedLeverage = await poolSwapLibrary.convertDecimalToUInt(leverageAmountBytes);
-
-				this.leverage = convertedLeverage.toNumber();
-			} catch (error) {
-				this.leverage = parseInt(name.split('-')?.[0] ?? 1);
-			}
-		}
 
 		const [longTokenAddress, shortTokenAddress, settlementTokenAddress] = await Promise.all([
 			poolInfo.longToken?.address ? poolInfo.longToken?.address : contract.tokens(0),
@@ -232,6 +217,13 @@ export default class Pool {
 			...poolInfo.committer
 		})
 		this.committer = poolCommitter;
+
+		// TODO handle other types of oracles
+		const smaOracle = await SMAOracle.Create({
+			address: oracleWrapper,
+			provider: this.provider,
+		})
+		this.oracle = smaOracle;
 
 		const keeperInstance = PoolKeeper__factory.connect(keeper, this.provider)
 		this._keeper = keeperInstance;
@@ -529,6 +521,13 @@ export default class Pool {
 		this.longToken.connect(provider);
 		this.shortToken.connect(provider);
 		this.settlementToken.connect(provider);
+	}
+
+	public getAnnualFee: () => BigNumber = () => {
+		if (this.updateInterval.eq(0)) {
+			return new BigNumber(0);
+		}
+		return (this.fee.times(SECONDS_PER_LEAP_YEAR)).div(this.updateInterval)
 	}
 
 	/**

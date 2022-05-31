@@ -1559,10 +1559,10 @@
   resolved "https://registry.yarnpkg.com/@tootallnate/once/-/once-1.1.2.tgz#ccb91445360179a04e7fe6aff78c00ffc1eeaf82"
   integrity sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==
 
-"@tracer-protocol/perpetual-pools-contracts@^1.2.3":
-  version "1.2.3"
-  resolved "https://registry.npmjs.org/@tracer-protocol/perpetual-pools-contracts/-/perpetual-pools-contracts-1.2.3.tgz#ccf661cb88572074e0293f2aefe603bcf5cc9fef"
-  integrity sha512-5MpVa1oAdc9oCXMXSJlY6owoulgIzurkoOatwNbaTr4WqAphj1RcI8xVEbKnaIVGHN2p43TbAXLCzpO9BI4bLg==
+"@tracer-protocol/perpetual-pools-contracts@^1.2.5":
+  version "1.2.5"
+  resolved "https://registry.npmjs.org/@tracer-protocol/perpetual-pools-contracts/-/perpetual-pools-contracts-1.2.5.tgz#1c579c0bfeed93791ace37ae22add118b1fc24c5"
+  integrity sha512-cgE80mAr3m/khjjoU1eojhs4ZN3Miu+Gl03/zRy4mKc3dpDAVryVf1726PC9fZ1DES9uVA6/htrXH5UbuEppdQ==
 
 "@tsconfig/node10@^1.0.7":
   version "1.0.8"

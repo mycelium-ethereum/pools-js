@@ -16,3 +16,5 @@ export const TEST_QUOTE_TOKEN = {
     address: '0xa72276C7ecDc2D97b029F39Dd23fEf3Ea07D2ff8',
     decimals: TEST_TOKEN_DECIMALS,
 }
+
+export const SECONDS_PER_LEAP_YEAR = 31622400;

@@ -2,6 +2,7 @@ jest.mock('ethers');
 jest.mock('../src/entities/token')
 jest.mock('../src/entities/poolToken')
 jest.mock('../src/entities/committer')
+jest.mock('../src/entities/smaOracle')
 
 import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
@@ -9,11 +10,13 @@ const actualEthers = jest.requireActual('ethers');
 ethers.utils = actualEthers.utils;
 
 import Committer from '../src/entities/committer';
+import SMAOracle from '../src/entities/smaOracle';
 import Pool from '../src/entities/pool'
 import PoolToken from '../src/entities/poolToken';
 import Token from '../src/entities/token';
 import { StaticTokenInfo } from '../src/types';
 import { ONE_HOUR, FIVE_MINUTES, USDC_TOKEN_DECIMALS } from './constants';
+// import Oracle from '../src/entities/oracle';
 
 const expected = {
 	longBalance: new BigNumber(200),
@@ -24,7 +27,12 @@ const expected = {
 	frontRunningInterval: new BigNumber(FIVE_MINUTES),
 	updateInterval: new BigNumber(ONE_HOUR),
 	leverage: 3,
-	fee: new BigNumber(0.05)// 5%
+	fee: new BigNumber(0.05), // 5%
+	// with a fee of 5%, there will be an estimated YEAR_IN_SECONDS / updateInterval === 8784 upkeeps
+	// this will result in an unrealistic 439.2% taken from the pools each year
+	// 0.05 * 8784 == 439.2%
+	annualFee: 439.2
+
 }
 
 const USDC: StaticTokenInfo = {
@@ -37,6 +45,7 @@ interface TestConfig {
 	name: string;
 	address: string;
 	keeper: string;
+	oracle: string;
 	committer: {
 		address: string;
 	}
@@ -61,6 +70,7 @@ const poolConfig: TestConfig = {
 	updateInterval: expected.updateInterval.toNumber(),
 	frontRunningInterval: expected.frontRunningInterval.toNumber(),
 	keeper: '0x759E817F0C40B11C775d1071d466B5ff5c6ce28e',
+	oracle: '0x759E817F0C40B11C775d1071d466B5ff5c6ce28e',
 	committer: {
 		address: '0x72c4e7Aa6c743DA4e690Fa7FA66904BC3f2C9C04',
 	},
@@ -124,17 +134,19 @@ const mockPool = {
 	longBalance: () => Promise.resolve( poolConfig.longBalance),
 	getOraclePrice: () => Promise.resolve( poolConfig.oraclePrice),
 	poolCommitter: () => Promise.resolve( poolConfig.committer.address),
-	keeper: () => Promise.resolve( poolConfig.keeper),
+	keeper: () => Promise.resolve(poolConfig.keeper),
+	oracleWrapper: () => Promise.resolve(poolConfig.oracle),
 	updateInterval: () => Promise.resolve( poolConfig.updateInterval),
 	fee: () => Promise.resolve( poolConfig.fee),
 	frontRunningInterval: () => Promise.resolve( poolConfig.frontRunningInterval),
 	poolName: () => Promise.resolve( poolConfig.name),
 	tokens: (num: number) => Promise.resolve(num === 0 ? poolConfig.longToken.address : poolConfig.shortToken.address),
 	settlementToken: () => Promise.resolve(poolConfig.settlementToken.address),
-	leverageAmount: () => Promise.resolve('0x3fff0000000000000000000000000000'), // 1 in IEE754 binary128
+	getLeverage: () => Promise.resolve('3'),
+	getFee: () => Promise.resolve(actualEthers.utils.parseEther(expected.fee.toString())),
 
 	// keeper functions
-	executionPrice: () => Promise.resolve( poolConfig.lastPrice),
+	executionPrice: () => Promise.resolve(poolConfig.lastPrice),
 
 	// pool swap library
 	convertDecimalToUInt: () => {
@@ -150,6 +162,11 @@ beforeEach(() => {
 	// @ts-ignore
 	Token.Create.mockImplementation(() => ({
 		decimals: poolConfig.settlementToken.decimals
+	}))
+	// @ts-ignore
+	SMAOracle.Create.mockImplementation(() => ({
+		numPeriods: 0,
+		updateInterval: 0
 	}))
 })
 
@@ -183,6 +200,9 @@ describe('Testing pool constructor', () => {
 		expect(pool.lastPrice.toNumber()).toEqual(0);
 		expect(pool.shortBalance.toNumber()).toEqual(0);
 		expect(pool.longBalance.toNumber()).toEqual(0);
+		expect(pool.leverage).toEqual(1);
+		expect(pool.fee.toNumber()).toEqual(0);
+		// should be an object since its mocked
 		await expect(async () => pool.fetchPoolBalances())
 			.rejects
 			.toThrow('Failed to update pool balances: this._contract undefined')
@@ -196,6 +216,11 @@ describe('Testing pool constructor', () => {
 			.rejects
 			.toThrow('Failed to fetch pools last price timestamp: this._contract undefined')
 		expect(() => pool.connect(null)).toThrow('Failed to connect LeveragedPool: provider cannot be undefined')
+	})
+	it ('Creating with special oracle', async () => {
+		createPool(poolConfig.address, {
+			...poolConfig,
+		}).then((pool) => assertPool(pool))
 	})
 });
 
@@ -283,6 +308,26 @@ describe('Calculating token prices', () => {
 				expect(pool.getNextShortTokenPrice()).toEqual(expectedShortTokenPrice)
 			})
 		)
+	})
+})
+
+describe('Calculating annual fee', () => {
+	it('handles no input', () => {
+		return createPool(poolConfig.address).then((pool) => (
+			expect(pool.getAnnualFee().toNumber()).toEqual(expected.annualFee)
+		))
+	}),
+	it('handles full input', () => {
+		return (
+			createPool(poolConfig.address, poolConfig).then((pool) => (
+				expect(pool.getAnnualFee().toNumber()).toEqual(expected.annualFee)
+			))
+		)
+	})
+
+	it('handles default', () => {
+		const pool = Pool.CreateDefault();
+		expect(pool.getAnnualFee().toNumber()).toEqual(0);
 	})
 })
 
