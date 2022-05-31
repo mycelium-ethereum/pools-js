@@ -21,22 +21,22 @@ export const encodeCommitParams: (
     return expectedResult;
 };
 
-export const ethersBNtoBN = (ethersBN: ethers.BigNumber): BigNumber => {
-  return new BigNumber(ethersBN.toString());
+export const ethersBNtoBN = (ethersBN: ethers.BigNumber, decimals?: number): BigNumber => {
+  return new BigNumber(ethers.utils.formatUnits(ethersBN, decimals ?? 0));
 };
 
 export const movingAveragePriceTransformer = (lastPrice: BigNumber, currentPrice: BigNumber) => {
   return lastPrice.plus(currentPrice).div(2);
 };
 
-export const pendingCommitsToBN = (pendingCommits: TotalPoolCommitments): TotalPoolCommitmentsBN => {
+export const pendingCommitsToBN = (pendingCommits: TotalPoolCommitments, decimals?: number): TotalPoolCommitmentsBN => {
     return {
-      longBurnPoolTokens: ethersBNtoBN(pendingCommits.longBurnPoolTokens),
-      longMintSettlement: ethersBNtoBN(pendingCommits.longMintSettlement),
-      longBurnShortMintPoolTokens: ethersBNtoBN(pendingCommits.longBurnShortMintPoolTokens),
-      shortBurnPoolTokens: ethersBNtoBN(pendingCommits.shortBurnPoolTokens),
-      shortMintSettlement: ethersBNtoBN(pendingCommits.shortMintSettlement),
-      shortBurnLongMintPoolTokens: ethersBNtoBN(pendingCommits.shortBurnLongMintPoolTokens)
+      longBurnPoolTokens: ethersBNtoBN(pendingCommits.longBurnPoolTokens, decimals),
+      longMintSettlement: ethersBNtoBN(pendingCommits.longMintSettlement, decimals),
+      longBurnShortMintPoolTokens: ethersBNtoBN(pendingCommits.longBurnShortMintPoolTokens, decimals),
+      shortBurnPoolTokens: ethersBNtoBN(pendingCommits.shortBurnPoolTokens, decimals),
+      shortMintSettlement: ethersBNtoBN(pendingCommits.shortMintSettlement, decimals),
+      shortBurnLongMintPoolTokens: ethersBNtoBN(pendingCommits.shortBurnLongMintPoolTokens, decimals)
     };
   }
 
