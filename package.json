@@ -1,6 +1,6 @@
 {
   "name": "@tracer-protocol/pools-js",
-  "version": "3.1.5",
+  "version": "3.1.6",
   "description": "Javascript library for interacting with Tracer's Perpetual Pools",
   "main": "./dist/index.js",
   "typings": "./dist/index.d.ts",
