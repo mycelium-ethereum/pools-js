@@ -1,4 +1,9 @@
-import { SMAOracle as SMAOracleContract , SMAOracle__factory } from "@tracer-protocol/perpetual-pools-contracts/types";
+import {
+	SMAOracle as SMAOracleContract,
+	SMAOracle__factory,
+	ChainlinkOracleWrapper,
+	ChainlinkOracleWrapper__factory
+} from "@tracer-protocol/perpetual-pools-contracts/types";
 import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
 import { OracleClass, IContract } from "../types";
@@ -28,10 +33,11 @@ export interface SMAOracleInfo {
  */
 export default class SMAOracle implements OracleClass<SMAOracleContract> {
 	_contract?: SMAOracleContract;
+	_underlyingOracle?: ChainlinkOracleWrapper; // assumes all SMA oracles use spot chainlink oracle wrapper
 	address: string;
 	provider: ethers.providers.Provider | ethers.Signer | undefined;
 	updateInterval: number; //update interval in seconds
-	numPeriods: number; // number of periods included in SMA calc 
+	numPeriods: number; // number of periods included in SMA calc
 
 	/**
 	 * @private
@@ -77,24 +83,49 @@ export default class SMAOracle implements OracleClass<SMAOracleContract> {
 			oracleInfo.provider
 		);
 		this._contract = contract;
-		const [updateInterval, numPeriods] = await Promise.all([
+		const [updateInterval, numPeriods, underlyingOracleAddress] = await Promise.all([
 			contract.updateInterval(),
-			contract.numPeriods()
+			contract.numPeriods(),
+			contract.oracle()
 		])
+		this._underlyingOracle = ChainlinkOracleWrapper__factory.connect(
+			underlyingOracleAddress,
+			this.provider
+		);
 		this.updateInterval = updateInterval.toNumber();
 		this.numPeriods = numPeriods.toNumber();
 	}
 
-
+	/**
+	 * get the latest SMA price
+	 * @returns the average of the most recent price data points
+	 */
 	public getPrice: () => Promise<BigNumber> = async () => {
 		if (!this._contract) {
 			throw Error("Failed to fetch oracle price: Contract not defined");
 		}
 		try {
 			const price = await this._contract.getPrice();
+			// OracleWrapper always scales feed decimals to 18 places
 			return new BigNumber(ethers.utils.formatEther(price))
 		} catch (err) {
 			throw Error(`Failed to fetch oracle price: ${err}`)
+		}
+	}
+
+		/**
+	 * get the current underlying spot price
+	 * @returns the current price reported by the underlying price oracle
+	 */
+	public getSpotPrice: () => Promise<BigNumber> = async () => {
+		if (!this._underlyingOracle) {
+			throw Error("Failed to fetch sma spot price: underlying oracle not defined");
+		}
+		try {
+			const price = await this._underlyingOracle.getPrice();
+			return new BigNumber(ethers.utils.formatEther(price))
+		} catch (err) {
+			throw Error(`Failed to fetch underlying oracle price: ${err}`)
 		}
 	}
 
