@@ -38,12 +38,14 @@ export default class SMAOracle implements OracleClass<SMAOracleContract> {
 	provider: ethers.providers.Provider | ethers.Signer | undefined;
 	updateInterval: number; //update interval in seconds
 	numPeriods: number; // number of periods included in SMA calc
+	type: 'SMA' | 'Spot' | undefined;
 
 	/**
 	 * @private
 	 */
 	private constructor () {
 		this.address = '';
+		this.type = undefined;
 		this.provider = undefined;
 		this.updateInterval = defaultSMAOracle.updateInterval;
 		this.numPeriods = defaultSMAOracle.numPeriods;
@@ -83,17 +85,35 @@ export default class SMAOracle implements OracleClass<SMAOracleContract> {
 			oracleInfo.provider
 		);
 		this._contract = contract;
-		const [updateInterval, numPeriods, underlyingOracleAddress] = await Promise.all([
-			contract.updateInterval(),
-			contract.numPeriods(),
-			contract.oracle()
-		])
+
+		// default values (if not SMA, will assume spot and use this)
+		let updateInterval = 0;
+		let numPeriods = 0;
+		let type: typeof this['type'] = 'Spot';
+		let underlyingOracleAddress = oracleInfo.address
+
+		try {
+			const [_updateInterval, _numPeriods, _underlyingOracleAddress] = await Promise.all([
+				contract.updateInterval(),
+				contract.numPeriods(),
+				contract.oracle()
+			])
+
+			updateInterval = _updateInterval.toNumber();
+			numPeriods = _numPeriods.toNumber();
+			type = 'SMA';
+			underlyingOracleAddress = _underlyingOracleAddress
+		} catch (error) {
+			console.log(`failed to init sma details for oracle ${oracleInfo.address}, assuming spot oracle`)
+		}
+
 		this._underlyingOracle = ChainlinkOracleWrapper__factory.connect(
 			underlyingOracleAddress,
 			this.provider
 		);
-		this.updateInterval = updateInterval.toNumber();
-		this.numPeriods = numPeriods.toNumber();
+		this.updateInterval = updateInterval;
+		this.numPeriods = numPeriods;
+		this.type = type
 	}
 
 	/**
