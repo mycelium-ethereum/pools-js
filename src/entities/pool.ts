@@ -13,6 +13,8 @@ import { calcNextValueTransfer, calcSkew, calcTokenPrice, calcPoolStatePreview, 
 import { OraclePriceTransformer, PoolStatePreview, TotalPoolCommitmentsBN } from "../types";
 import { ethersBNtoBN, movingAveragePriceTransformer, pendingCommitsToBN, SECONDS_PER_LEAP_YEAR } from "../utils";
 import SMAOracle from "./smaOracle";
+import PoolStateHelper from "./poolStateHelper";
+import { POOL_STATE_HELPER_BY_NETWORK } from "../utils";
 
 
 /**
@@ -32,7 +34,7 @@ export interface StaticPoolInfo {
 	 */
     frontRunningInterval?: number;
     leverage?: number;
-    fee?: string; // percentage decimal in wei eg 1 * 10 ^18 === 100% 
+    fee?: string; // percentage decimal in wei eg 1 * 10 ^18 === 100%
     keeper?: string; // address
 	oracle?: string; // address
     committer?: {
@@ -74,9 +76,10 @@ export default class Pool {
 	updateInterval: BigNumber;
 	frontRunningInterval: BigNumber;
 	leverage: number;
-    fee: BigNumber; // percentage decimal in wei eg 1 * 10 ^18 === 100% 
+	fee: BigNumber; // percentage decimal in wei eg 1 * 10 ^18 === 100%
 	keeper: string;
 	committer: Committer;
+	poolStateHelper: PoolStateHelper;
 	oracle: SMAOracle;
 	shortToken: PoolToken;
 	longToken: PoolToken;
@@ -120,6 +123,8 @@ export default class Pool {
 		this.oraclePriceTransformer = movingAveragePriceTransformer;
 
 		this.oracle = SMAOracle.CreateDefault();
+
+		this.poolStateHelper = PoolStateHelper.CreateDefault();
 	}
 
 	/**
@@ -240,6 +245,16 @@ export default class Pool {
 		this.frontRunningInterval = new BigNumber(frontRunningInterval);
 		this.lastUpdate = new BigNumber(lastUpdate.toString());
 		this.oraclePriceTransformer = poolInfo.oraclePriceTransformer ?? movingAveragePriceTransformer
+
+		if(POOL_STATE_HELPER_BY_NETWORK[this.chainId]) {
+			const poolStateHelper = await PoolStateHelper.Create({
+				address: POOL_STATE_HELPER_BY_NETWORK[this.chainId],
+				provider: this.provider,
+				poolAddress: poolInfo.address,
+				committerAddress: committer
+			})
+			this.poolStateHelper = poolStateHelper
+		}
 	}
 
 	/**
@@ -392,6 +407,7 @@ export default class Pool {
 	}
 
 	/**
+	 * @deprecated
 	 * get all total pool commitments between now and `now + frontRunningInterval`
 	 * @returns promise resolving to an array of `TotalPoolCommitmentsBN`s
 	 */
@@ -427,6 +443,7 @@ export default class Pool {
 	}
 
 	/**
+	 * @deprecated
 	 * get total pool commitments between now and `now + updateInterval`
 	 * @returns promise resolving to a `TotalPoolCommitmentsBN` object
 	 */
@@ -442,7 +459,7 @@ export default class Pool {
 	}
 
 	/**
-	 *
+	 * @deprecated
 	 * @param atEndOf whether to fetch preview for end of update interval or front running interval
 	 * @param forceRefreshInputs if `true`, will refresh
 	 * `this.longBalance`,
@@ -502,6 +519,64 @@ export default class Pool {
 			pendingCommits,
 			oraclePriceTransformer: this.oraclePriceTransformer
 		});
+
+		return poolStatePreview;
+	}
+
+	/**
+	 *
+	 * calculate expected pool state via on chain state calculations contract
+	 *
+	 * @param atEndOf whether to fetch preview for end of update interval or front running interval
+	 * @returns
+	 */
+	public getExpectedPoolState: (
+		atEndOf: 'frontRunningInterval' | 'updateInterval',
+		forceRefreshInputs?: boolean,
+	) => Promise<PoolStatePreview> = async (atEndOf) => {
+
+		const periods = atEndOf === 'frontRunningInterval' ?
+			this.poolStateHelper.fullCommitPeriod :
+			1
+
+		const [
+			currentState,
+			expectedState,
+			pendingCommits,
+			currentOraclePrice,
+		] = await Promise.all([
+			this.poolStateHelper.getExpectedPoolState({
+				periods: 0
+			}),
+			this.poolStateHelper.getExpectedPoolState({
+				periods
+			}),
+			this.poolStateHelper.getCommitQueue({
+				periods
+			}),
+			this.oracle.getPrice(),
+		])
+
+		const poolStatePreview = {
+			timestamp: Math.floor(Date.now() / 1000),
+			currentSkew: currentState.longBalance.div(currentState.shortBalance.eq(0) ? 1 : currentState.shortBalance),
+			currentLongBalance: currentState.longBalance,
+			currentLongSupply: currentState.longSupply,
+			currentShortBalance: currentState.shortBalance,
+			currentShortSupply: currentState.shortSupply,
+			expectedSkew: expectedState.longBalance.div(expectedState.shortBalance.eq(0) ? 1 : expectedState.shortBalance),
+			expectedLongBalance: expectedState.longBalance,
+			expectedLongSupply: expectedState.longSupply,
+			expectedShortBalance: expectedState.shortBalance,
+			expectedShortSupply: expectedState.shortSupply,
+			totalNetPendingLong: expectedState.longBalance.minus(currentState.longBalance),
+			totalNetPendingShort: expectedState.shortBalance.minus(currentState.shortBalance),
+			expectedLongTokenPrice: expectedState.longBalance.div(expectedState.shortBalance.eq(0) ? 1 : expectedState.shortBalance),
+			expectedShortTokenPrice: expectedState.shortBalance.div(expectedState.longBalance.eq(0) ? 1 : expectedState.longBalance),
+			lastOraclePrice: currentOraclePrice,
+			expectedOraclePrice: expectedState.oraclePrice,
+			pendingCommits
+		}
 
 		return poolStatePreview;
 	}

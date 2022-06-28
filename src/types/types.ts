@@ -52,7 +52,7 @@ export type PoolStatePreviewInputs = {
   fee: BigNumber, // pool fee represented as a decimal 0.05 == 5%
   longBalance: BigNumber,
   shortBalance: BigNumber,
-  longTokenSupply: BigNumber, 
+  longTokenSupply: BigNumber,
   shortTokenSupply: BigNumber,
   pendingLongTokenBurn: BigNumber, // amount of longTokens being burnt
   pendingShortTokenBurn: BigNumber, // amount of shortTokens being burnt
@@ -61,7 +61,7 @@ export type PoolStatePreviewInputs = {
 
   // TotalCommits for each upkeep.
   // One entry in this array is the summation of commits for its respective upkeep
-  pendingCommits: TotalPoolCommitmentsBN[], 
+  pendingCommits: TotalPoolCommitmentsBN[],
   oraclePriceTransformer: OraclePriceTransformer
 }
 
