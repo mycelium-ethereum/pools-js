@@ -120,7 +120,9 @@ export default class PoolStateHelper {
 			longBalance: ethersBNtoBN(expectedState.longBalance),
 			shortSupply: ethersBNtoBN(expectedState.shortSupply),
 			shortBalance: ethersBNtoBN(expectedState.shortBalance),
-			oraclePrice: ethersBNtoBN(expectedState.oraclePrice),
+			// oracle wrapper formats price to decimal places
+			// pool state helper leaves oracle price in wad, format here to be consistent with
+			oraclePrice: new BigNumber(ethers.utils.formatEther(expectedState.oraclePrice)),
 		}
 	}
 
