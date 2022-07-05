@@ -3,6 +3,7 @@ jest.mock('../src/entities/token')
 jest.mock('../src/entities/poolToken')
 jest.mock('../src/entities/committer')
 jest.mock('../src/entities/smaOracle')
+jest.mock('../src/entities/poolStateHelper')
 
 import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
@@ -11,6 +12,7 @@ ethers.utils = actualEthers.utils;
 
 import Committer from '../src/entities/committer';
 import SMAOracle from '../src/entities/smaOracle';
+import PoolStateHelper from '../src/entities/poolStateHelper';
 import Pool from '../src/entities/pool'
 import PoolToken from '../src/entities/poolToken';
 import Token from '../src/entities/token';
@@ -151,6 +153,11 @@ const mockPool = {
 	// pool swap library
 	convertDecimalToUInt: () => {
 		return Promise.resolve(actualEthers.BigNumber.from(poolConfig.leverage))
+	},
+
+	// pool state helper
+	fullCommitPeriod: () => {
+		return Promise.resolve(1)
 	}
 }
 
@@ -167,6 +174,10 @@ beforeEach(() => {
 	SMAOracle.Create.mockImplementation(() => ({
 		numPeriods: 0,
 		updateInterval: 0
+	}))
+	// @ts-ignore
+	PoolStateHelper.Create.mockImplementation(() => ({
+		fullCommitPeriod: 1,
 	}))
 })
 
