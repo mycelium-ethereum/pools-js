@@ -40,7 +40,7 @@
   },
   "dependencies": {
     "@tracer-protocol/perpetual-pools-contracts": "^1.2.5",
-    "@tracer-protocol/pool-state-helper": "^0.0.1",
+    "@tracer-protocol/pool-state-helper": "^0.0.2",
     "bignumber.js": "^9.0.1",
     "ethers": "^5.6.1"
   },
