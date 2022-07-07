@@ -25,7 +25,7 @@
   ],
   "exclude": [
     "./node_modules/**/*",
-    "./vendor/**/*"
+    "./src/vendor/**/*"
   ],
   "typedocOptions": {
     "entryPoints": ["./src/index.ts"],
