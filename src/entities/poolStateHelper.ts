@@ -1,5 +1,5 @@
 
-import { PoolStateHelper as PoolStateHelperTypeChain, PoolStateHelper__factory } from "../vendor/poolStateHelper";
+import { PoolStateHelper as PoolStateHelperTypeChain, PoolStateHelper__factory } from "@tracer-protocol/pool-state-helper/types";
 import BigNumber from "bignumber.js";
 import { ethers } from "ethers";
 import { ethersBNtoBN } from "../utils";

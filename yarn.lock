@@ -1564,6 +1564,11 @@
   resolved "https://registry.npmjs.org/@tracer-protocol/perpetual-pools-contracts/-/perpetual-pools-contracts-1.2.5.tgz#1c579c0bfeed93791ace37ae22add118b1fc24c5"
   integrity sha512-cgE80mAr3m/khjjoU1eojhs4ZN3Miu+Gl03/zRy4mKc3dpDAVryVf1726PC9fZ1DES9uVA6/htrXH5UbuEppdQ==
 
+"@tracer-protocol/pool-state-helper@^0.0.2":
+  version "0.0.2"
+  resolved "https://registry.npmjs.org/@tracer-protocol/pool-state-helper/-/pool-state-helper-0.0.2.tgz#3eb62ff1318a5658bd25a88e7a916578534bc284"
+  integrity sha512-FJyIgMsqhCXxr7S87uLwZdAyNWL9VN7mDZp6QB2lLzmdiJhgh1qi1SaZoCi4Gea3iP/25apPZmzcKNM5UsNlJg==
+
 "@tsconfig/node10@^1.0.7":
   version "1.0.8"
   resolved "https://registry.yarnpkg.com/@tsconfig/node10/-/node10-1.0.8.tgz#c1e4e80d6f964fbecb3359c43bd48b40f7cadad9"
