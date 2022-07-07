@@ -2,14 +2,14 @@
   "compilerOptions": {
     "listEmittedFiles": false,
     "outDir": "dist",
-    "declaration": true, 
+    "declaration": true,
     "declarationDir": "dist",
     "target": "es5",
     // "module": "esnext",
     "lib": ["es6", "dom", "es7", "es2017"],
-    "moduleResolution": "node", 
-    "strict": true,  
-    "esModuleInterop": false,                          
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": false,
     "noImplicitAny": true,
     "skipLibCheck": true,
     "noImplicitThis": true,
@@ -24,7 +24,8 @@
     "./src/**/*"
   ],
   "exclude": [
-    "./node_modules/**/*"
+    "./node_modules/**/*",
+    "./src/vendor/**/*"
   ],
   "typedocOptions": {
     "entryPoints": ["./src/index.ts"],
