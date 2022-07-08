@@ -36,6 +36,7 @@ export default class Oracle implements OracleClass<ChainlinkOracleWrapper> {
 	 */
 	private constructor() {
 		this.address = '';
+		this.provider = undefined;
 		this.multicallProvider = undefined;
 	}
 
@@ -66,6 +67,7 @@ export default class Oracle implements OracleClass<ChainlinkOracleWrapper> {
 	 * @param oracleInfo {@link IOracle | IOracle interface props}
 	 */
 	private init: (oracleInfo: IOracle) => Promise<void> = async (oracleInfo) => {
+		this.provider = oracleInfo.provider;
 		this.multicallProvider = new MCProvider.MulticallProvider(
 			oracleInfo.provider as ethers.providers.Provider
 		);

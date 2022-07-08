@@ -38,8 +38,9 @@ export default class Token {
 	 * @private
 	 */
 	private constructor() {
-		// these all need to be ovverridden in the init function
+		// these all need to be overridden in the init function
 		this.address = '';
+		this.provider = undefined;
 		this.multicallProvider = undefined;
 		this.name = '';
 		this.symbol = '';
@@ -73,6 +74,7 @@ export default class Token {
 	 * @param tokenInfo {@link IToken | IToken interface props}
 	 */
 	private init: (tokenInfo: IToken) => Promise<void> = async (tokenInfo) => {
+		this.provider = tokenInfo.provider;
 		this.multicallProvider = new MCProvider.MulticallProvider(
 			tokenInfo.provider as ethers.providers.Provider
 		);

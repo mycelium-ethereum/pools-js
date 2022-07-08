@@ -47,6 +47,8 @@ export default class Committer {
 	private constructor() {
 		// these all need to be ovverridden in the init function
 		this.address = '';
+		this.provider = undefined;
+		this.multicallProvider = undefined;
 		this.pendingLong = {
 			...defaultCommitter.pendingLong
 		}
@@ -83,6 +85,7 @@ export default class Committer {
 	 * @param committerInfo {@link IPoolCommitter | IPoolCommitter interface props}
 	 */
 	private init: (commitInfo: IPoolCommitter) => Promise<void> = async (commitInfo) => {
+		this.provider = commitInfo.provider;
 		this.multicallProvider = new MCProvider.MulticallProvider(
 			commitInfo.provider as ethers.providers.Provider
 		);

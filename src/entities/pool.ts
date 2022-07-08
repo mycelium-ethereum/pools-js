@@ -101,6 +101,7 @@ export default class Pool {
 	 */
 	private constructor() {
 		this.address = '';
+		this.provider = undefined;
 		this.multicallProvider = undefined;
 		this.chainId = undefined;
 
@@ -161,6 +162,7 @@ export default class Pool {
 	 */
 	private init: (poolInfo: IPool) => Promise<void> = async (poolInfo) => {
 		this.address = poolInfo.address;
+		this.provider = poolInfo.provider;
 		this.multicallProvider =
 			new MCProvider.MulticallProvider(
 				poolInfo.provider

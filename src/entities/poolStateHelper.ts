@@ -49,6 +49,7 @@ export default class PoolStateHelper {
 		this.poolAddress = '';
 		this.committerAddress = '';
 		this.fullCommitPeriod = 1;
+		this.provider = undefined;
 		this.multicallProvider = undefined;
 	}
 
@@ -79,6 +80,7 @@ export default class PoolStateHelper {
 	 * @param config {@link IPoolStateHelper | IPoolStateHelper interface props}
 	 */
 	private init: (config: IPoolStateHelper) => Promise<void> = async (config) => {
+		this.provider = config.provider;
 		this.multicallProvider = new MCProvider.MulticallProvider(
 			config.provider as ethers.providers.Provider
 		);

@@ -32,6 +32,7 @@ export default class PoolToken {
 	private constructor() {
 		// these all need to be ovverridden in the init function
 		this.address = '';
+		this.provider = undefined;
 		this.multicallProvider = undefined;
 		this.name = '';
 		this.symbol = '';
@@ -67,6 +68,7 @@ export default class PoolToken {
 	 * @param tokenInfo {@link IPoolToken | IPoolToken interface props}
 	 */
 	private init: (tokenInfo: IPoolToken) => Promise<void> = async (tokenInfo) => {
+		this.provider = tokenInfo.provider;
 		this.multicallProvider = new MCProvider.MulticallProvider(
 			tokenInfo.provider as ethers.providers.Provider
 		);

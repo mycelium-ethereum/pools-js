@@ -48,6 +48,7 @@ export default class SMAOracle implements OracleClass<SMAOracleContract> {
 	private constructor() {
 		this.address = '';
 		this.type = undefined;
+		this.provider = undefined;
 		this.multicallProvider = undefined;
 		this.updateInterval = defaultSMAOracle.updateInterval;
 		this.numPeriods = defaultSMAOracle.numPeriods;
@@ -79,6 +80,7 @@ export default class SMAOracle implements OracleClass<SMAOracleContract> {
 	 * @param oracleInfo {@link ISMAOracle | ISMAOracle interface props}
 	 */
 	private init: (oracleInfo: ISMAOracle) => Promise<void> = async (oracleInfo) => {
+		this.provider = oracleInfo.provider;
 		this.multicallProvider = new MCProvider.MulticallProvider(
 			oracleInfo.provider as ethers.providers.Provider
 		);
