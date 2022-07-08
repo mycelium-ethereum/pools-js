@@ -1,6 +1,7 @@
 
 import { PoolStateHelper as PoolStateHelperTypeChain, PoolStateHelper__factory } from "@tracer-protocol/pool-state-helper/types";
 import BigNumber from "bignumber.js";
+import { providers as MCProvider } from '@0xsequence/multicall';
 import { ethers } from "ethers";
 import { ethersBNtoBN } from "../utils";
 import { IContract, TotalPoolCommitmentsBN } from "../types";
@@ -8,7 +9,7 @@ import { IContract, TotalPoolCommitmentsBN } from "../types";
 /**
  * Pool State Helper class constructor inputs
  */
-export interface IPoolStateHelper extends IContract, _PoolStateHelper {}
+export interface IPoolStateHelper extends IContract, _PoolStateHelper { }
 
 /**
  * PoolStateHelper constructor props
@@ -38,16 +39,17 @@ export default class PoolStateHelper {
 	committerAddress: string;
 	fullCommitPeriod: number;
 	provider: ethers.providers.Provider | ethers.Signer | undefined;
+	multicallProvider: MCProvider.MulticallProvider | ethers.Signer | undefined;
 
 	/**
 	 * @private
 	 */
-	private constructor () {
+	private constructor() {
 		this.address = '';
 		this.poolAddress = '';
 		this.committerAddress = '';
 		this.fullCommitPeriod = 1;
-		this.provider = undefined;
+		this.multicallProvider = undefined;
 	}
 
 	/**
@@ -77,7 +79,9 @@ export default class PoolStateHelper {
 	 * @param config {@link IPoolStateHelper | IPoolStateHelper interface props}
 	 */
 	private init: (config: IPoolStateHelper) => Promise<void> = async (config) => {
-		this.provider = config.provider;
+		this.multicallProvider = new MCProvider.MulticallProvider(
+			config.provider as ethers.providers.Provider
+		);
 		this.address = config.address;
 		this.poolAddress = config.poolAddress;
 		this.committerAddress = config.committerAddress;
@@ -100,8 +104,10 @@ export default class PoolStateHelper {
 		if (!provider) {
 			throw Error("Failed to connect PoolStateHelper: provider cannot be undefined")
 		}
-		this.provider = provider;
-		this._contract = this._contract?.connect(provider);
+		this.multicallProvider = new MCProvider.MulticallProvider(
+			provider as ethers.providers.Provider
+		);
+		this._contract = this._contract?.connect(this.multicallProvider);
 	}
 
 	public getExpectedPoolState: (args: { periods: number }) => Promise<ExpectedPoolState> = async ({ periods }) => {

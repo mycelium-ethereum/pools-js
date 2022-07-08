@@ -1,13 +1,14 @@
 
 import { ChainlinkOracleWrapper, ChainlinkOracleWrapper__factory } from "@tracer-protocol/perpetual-pools-contracts/types";
 import BigNumber from "bignumber.js";
+import { providers as MCProvider } from '@0xsequence/multicall';
 import { ethers } from "ethers";
 import { OracleClass, IContract } from "../types";
 
 /**
  * Oracle class constructor inputs
  */
-export interface IOracle extends IContract, OracleInfo {}
+export interface IOracle extends IContract, OracleInfo { }
 
 /**
  * Oracle constructor props
@@ -28,18 +29,19 @@ export default class Oracle implements OracleClass<ChainlinkOracleWrapper> {
 	_contract?: ChainlinkOracleWrapper;
 	address: string;
 	provider: ethers.providers.Provider | ethers.Signer | undefined;
+	multicallProvider: MCProvider.MulticallProvider | ethers.Signer | undefined;
 
 	/**
 	 * @private
 	 */
-	private constructor () {
+	private constructor() {
 		this.address = '';
-		this.provider = undefined;
+		this.multicallProvider = undefined;
 	}
 
 	/**
 	 * Replacement constructor pattern to support async initialisations
-	 * @param tokenINfo {@link IOracle | IOracle interface props}
+	 * @param oracleInfo {@link IOracle | IOracle interface props}
 	 * @returns a Promise containing an initialised Oracle class ready to be used
 	 */
 	public static Create: (oracleInfo: IOracle) => Promise<Oracle> = async (oracleInfo) => {
@@ -64,12 +66,14 @@ export default class Oracle implements OracleClass<ChainlinkOracleWrapper> {
 	 * @param oracleInfo {@link IOracle | IOracle interface props}
 	 */
 	private init: (oracleInfo: IOracle) => Promise<void> = async (oracleInfo) => {
-		this.provider = oracleInfo.provider;
+		this.multicallProvider = new MCProvider.MulticallProvider(
+			oracleInfo.provider as ethers.providers.Provider
+		);
 		this.address = oracleInfo.address;
 
 		const contract = ChainlinkOracleWrapper__factory.connect(
 			oracleInfo.address,
-			oracleInfo.provider
+			this.multicallProvider
 		);
 		this._contract = contract;
 	}
@@ -82,7 +86,9 @@ export default class Oracle implements OracleClass<ChainlinkOracleWrapper> {
 		if (!provider) {
 			throw Error("Failed to connect Oracle: provider cannot be undefined")
 		}
-		this.provider = provider;
+		this.multicallProvider = new MCProvider.MulticallProvider(
+			provider as ethers.providers.Provider
+		);
 		this._contract = this._contract?.connect(provider);
 	}
 

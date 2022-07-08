@@ -1,12 +1,13 @@
 import { ERC20, ERC20__factory } from "@tracer-protocol/perpetual-pools-contracts/types";
 import BigNumber from "bignumber.js"
+import { providers as MCProvider } from '@0xsequence/multicall';
 import { ethers } from "ethers";
 import { IContract } from "../types";
 
 /**
  * Token class constructor inputs
  */
-export interface IToken extends IContract, TokenInfo {}
+export interface IToken extends IContract, TokenInfo { }
 
 /**
  * Token constructor props
@@ -28,6 +29,7 @@ export default class Token {
 	_contract?: ERC20;
 	address: string;
 	provider: ethers.providers.Provider | ethers.Signer | undefined;
+	multicallProvider: MCProvider.MulticallProvider | ethers.Signer | undefined;
 	name: string;
 	symbol: string;
 	decimals: number;
@@ -35,10 +37,10 @@ export default class Token {
 	/**
 	 * @private
 	 */
-	private constructor () {
+	private constructor() {
 		// these all need to be ovverridden in the init function
 		this.address = '';
-		this.provider = undefined;
+		this.multicallProvider = undefined;
 		this.name = '';
 		this.symbol = '';
 		this.decimals = 18;
@@ -71,12 +73,14 @@ export default class Token {
 	 * @param tokenInfo {@link IToken | IToken interface props}
 	 */
 	private init: (tokenInfo: IToken) => Promise<void> = async (tokenInfo) => {
-		this.provider = tokenInfo.provider;
+		this.multicallProvider = new MCProvider.MulticallProvider(
+			tokenInfo.provider as ethers.providers.Provider
+		);
 		this.address = tokenInfo.address;
 
 		const contract = ERC20__factory.connect(
 			tokenInfo.address,
-			tokenInfo.provider
+			this.multicallProvider
 		);
 
 		this._contract = contract;
@@ -104,7 +108,7 @@ export default class Token {
 		const balanceOf = await this._contract.balanceOf(account).catch((error) => {
 			throw Error("Failed to fetch balance: " + error?.message)
 		});
-		return (new BigNumber (ethers.utils.formatUnits(balanceOf, this.decimals)));
+		return (new BigNumber(ethers.utils.formatUnits(balanceOf, this.decimals)));
 	}
 
 	/**
@@ -120,7 +124,7 @@ export default class Token {
 		const balanceOf = await this._contract.allowance(account, spender).catch((error) => {
 			throw Error("Failed to fetch allowance: " + error?.message);
 		});
-		return (new BigNumber (ethers.utils.formatUnits(balanceOf, this.decimals)));
+		return (new BigNumber(ethers.utils.formatUnits(balanceOf, this.decimals)));
 	}
 
 	/**
@@ -144,7 +148,9 @@ export default class Token {
 		if (!provider) {
 			throw Error("Failed to connect Token: provider cannot be undefined")
 		}
-		this.provider = provider;
-		this._contract = this._contract?.connect(provider);
+		this.multicallProvider = new MCProvider.MulticallProvider(
+			provider as ethers.providers.Provider
+		);
+		this._contract = this._contract?.connect(this.multicallProvider);
 	}
 }

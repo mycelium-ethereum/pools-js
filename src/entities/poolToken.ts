@@ -1,5 +1,6 @@
 import { PoolToken__factory, PoolToken as PoolTokenContract } from "@tracer-protocol/perpetual-pools-contracts/types";
 import BigNumber from "bignumber.js";
+import { providers as MCProvider } from '@0xsequence/multicall';
 import { ethers } from "ethers";
 import { SideEnum } from "..";
 import { IToken } from "./token";
@@ -17,6 +18,7 @@ export default class PoolToken {
 	_contract?: PoolTokenContract
 	address: string;
 	provider: ethers.providers.Provider | ethers.Signer | undefined;
+	multicallProvider: MCProvider.MulticallProvider | ethers.Signer | undefined;
 	name: string;
 	symbol: string;
 	decimals: number;
@@ -27,10 +29,10 @@ export default class PoolToken {
 	/**
 	 * @private
 	 */
-	private constructor () {
+	private constructor() {
 		// these all need to be ovverridden in the init function
 		this.address = '';
-		this.provider = undefined;
+		this.multicallProvider = undefined;
 		this.name = '';
 		this.symbol = '';
 		this.decimals = 18;
@@ -65,7 +67,9 @@ export default class PoolToken {
 	 * @param tokenInfo {@link IPoolToken | IPoolToken interface props}
 	 */
 	private init: (tokenInfo: IPoolToken) => Promise<void> = async (tokenInfo) => {
-		this.provider = tokenInfo.provider;
+		this.multicallProvider = new MCProvider.MulticallProvider(
+			tokenInfo.provider as ethers.providers.Provider
+		);
 		this.address = tokenInfo.address;
 		this.pool = tokenInfo.pool;
 		this.side = tokenInfo.side;
@@ -101,7 +105,7 @@ export default class PoolToken {
 		const balanceOf = await this._contract.balanceOf(account).catch((error) => {
 			throw Error("Failed to fetch balance: " + error?.message)
 		});
-		return (new BigNumber (ethers.utils.formatUnits(balanceOf, this.decimals)));
+		return (new BigNumber(ethers.utils.formatUnits(balanceOf, this.decimals)));
 	}
 
 	/**
@@ -117,7 +121,7 @@ export default class PoolToken {
 		const balanceOf = await this._contract.allowance(account, spender).catch((error) => {
 			throw Error("Failed to fetch allowance: " + error?.message);
 		});
-		return (new BigNumber (ethers.utils.formatUnits(balanceOf, this.decimals)));
+		return (new BigNumber(ethers.utils.formatUnits(balanceOf, this.decimals)));
 	}
 
 	/**
@@ -159,7 +163,9 @@ export default class PoolToken {
 		if (!provider) {
 			throw Error("Failed to connect PoolToken: provider cannot be undefined")
 		}
-		this.provider = provider;
-		this._contract = this._contract?.connect(provider);
+		this.multicallProvider = new MCProvider.MulticallProvider(
+			provider as ethers.providers.Provider
+		);
+		this._contract = this._contract?.connect(this.multicallProvider);
 	}
 }
