@@ -106,6 +106,7 @@ export default class PoolStateHelper {
 		if (!provider) {
 			throw Error("Failed to connect PoolStateHelper: provider cannot be undefined")
 		}
+		this.provider = provider;
 		this.multicallProvider = new MCProvider.MulticallProvider(
 			provider as ethers.providers.Provider
 		);

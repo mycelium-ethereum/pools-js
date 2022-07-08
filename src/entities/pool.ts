@@ -597,6 +597,7 @@ export default class Pool {
 		if (!provider) {
 			throw Error("Failed to connect LeveragedPool: provider cannot be undefined")
 		}
+		this.provider = provider;
 		this.multicallProvider = new MCProvider.MulticallProvider(
 			provider as ethers.providers.Provider
 		);

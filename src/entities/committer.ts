@@ -200,6 +200,7 @@ export default class Committer {
 		if (!provider) {
 			throw Error("Failed to connect Committer: provider cannot be undefined")
 		}
+		this.provider = provider;
 		this.multicallProvider = new MCProvider.MulticallProvider(
 			provider as ethers.providers.Provider
 		);

@@ -88,6 +88,7 @@ export default class Oracle implements OracleClass<ChainlinkOracleWrapper> {
 		if (!provider) {
 			throw Error("Failed to connect Oracle: provider cannot be undefined")
 		}
+		this.provider = provider;
 		this.multicallProvider = new MCProvider.MulticallProvider(
 			provider as ethers.providers.Provider
 		);

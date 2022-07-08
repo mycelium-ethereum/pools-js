@@ -163,6 +163,7 @@ export default class SMAOracle implements OracleClass<SMAOracleContract> {
 		if (!provider) {
 			throw Error("Failed to connect SMAOracle: provider cannot be undefined")
 		}
+		this.provider = provider;
 		this.multicallProvider = new MCProvider.MulticallProvider(
 			provider as ethers.providers.Provider
 		);

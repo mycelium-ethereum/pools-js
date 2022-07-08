@@ -165,6 +165,7 @@ export default class PoolToken {
 		if (!provider) {
 			throw Error("Failed to connect PoolToken: provider cannot be undefined")
 		}
+		this.provider = provider;
 		this.multicallProvider = new MCProvider.MulticallProvider(
 			provider as ethers.providers.Provider
 		);
