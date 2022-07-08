@@ -1,5 +1,6 @@
 import { PoolCommitter, PoolCommitter__factory } from "@tracer-protocol/perpetual-pools-contracts/types";
 import BigNumber from "bignumber.js";
+import { providers as MCProvider } from '@0xsequence/multicall';
 import { ethers } from "ethers";
 import { CommitEnum, IContract, PendingAmounts } from "../types";
 import { encodeCommitParams } from "../utils/helpers";
@@ -35,20 +36,23 @@ export default class Committer {
 	_contract?: PoolCommitter;
 	address: string;
 	provider: ethers.providers.Provider | ethers.Signer | undefined;
+	multicallProvider: MCProvider.MulticallProvider | ethers.Signer | undefined;
 	settlementTokenDecimals: number;
-	// decimal percenages
+	// decimal percentages
 	mintingFee: BigNumber;
 	burningFee: BigNumber;
-    pendingLong: PendingAmounts;
-    pendingShort: PendingAmounts;
+	pendingLong: PendingAmounts;
+	pendingShort: PendingAmounts;
 
-	private constructor () {
+	private constructor() {
 		// these all need to be ovverridden in the init function
 		this.address = '';
+		this.provider = undefined;
+		this.multicallProvider = undefined;
 		this.pendingLong = {
 			...defaultCommitter.pendingLong
 		}
-		this.pendingShort= {
+		this.pendingShort = {
 			...defaultCommitter.pendingShort
 		}
 		this.settlementTokenDecimals = defaultCommitter.settlementTokenDecimals;
@@ -82,12 +86,15 @@ export default class Committer {
 	 */
 	private init: (commitInfo: IPoolCommitter) => Promise<void> = async (commitInfo) => {
 		this.provider = commitInfo.provider;
+		this.multicallProvider = new MCProvider.MulticallProvider(
+			commitInfo.provider as ethers.providers.Provider
+		);
 		this.address = commitInfo.address;
 		this.settlementTokenDecimals = commitInfo.settlementTokenDecimals;
 
 		const contract = PoolCommitter__factory.connect(
 			commitInfo.address,
-			commitInfo.provider,
+			this.multicallProvider,
 		)
 		this._contract = contract;
 
@@ -105,7 +112,7 @@ export default class Committer {
 			this.burningFee = new BigNumber(ethers.utils.formatEther(burningFee));
 			this.pendingShort = pendingShort;
 			this.pendingLong = pendingLong;
-		} catch(error) {
+		} catch (error) {
 			throw Error(
 				"Failed to initialise committer: " + error
 			)
@@ -194,6 +201,9 @@ export default class Committer {
 			throw Error("Failed to connect Committer: provider cannot be undefined")
 		}
 		this.provider = provider;
-		this._contract = this._contract?.connect(provider);
+		this.multicallProvider = new MCProvider.MulticallProvider(
+			provider as ethers.providers.Provider
+		);
+		this._contract = this._contract?.connect(this.multicallProvider);
 	}
 }

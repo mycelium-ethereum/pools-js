@@ -2,11 +2,12 @@ import BigNumber from "bignumber.js";
 import Token, { TokenInfo } from "./token";
 import { ethers } from 'ethers';
 import {
-    LeveragedPool__factory,
-    LeveragedPool,
-    PoolKeeper__factory,
-    PoolKeeper,
+	LeveragedPool__factory,
+	LeveragedPool,
+	PoolKeeper__factory,
+	PoolKeeper,
 } from '@tracer-protocol/perpetual-pools-contracts/types';
+import { providers as MCProvider } from '@0xsequence/multicall';
 import PoolToken from "./poolToken";
 import Committer from './committer';
 import { calcNextValueTransfer, calcSkew, calcTokenPrice, calcPoolStatePreview, SideEnum } from "..";
@@ -22,27 +23,27 @@ import { POOL_STATE_HELPER_BY_NETWORK } from "../utils";
  * Most is optional except the address, this is a requirement
  */
 export interface StaticPoolInfo {
-    address: string;
-    name?: string;
+	address: string;
+	name?: string;
 	/**
 	 * Update interaval (time between upkeeps) in seconds.
 	 */
-    updateInterval?: number; // in seconds
+	updateInterval?: number; // in seconds
 	/**
 	 * Front running interaval in seconds.
 	 * Time before the upkeep where no more commits are permitted
 	 */
-    frontRunningInterval?: number;
-    leverage?: number;
-    fee?: string; // percentage decimal in wei eg 1 * 10 ^18 === 100%
-    keeper?: string; // address
+	frontRunningInterval?: number;
+	leverage?: number;
+	fee?: string; // percentage decimal in wei eg 1 * 10 ^18 === 100%
+	keeper?: string; // address
 	oracle?: string; // address
-    committer?: {
-			address: string;
-		}
-    shortToken?: TokenInfo;
-    longToken?: TokenInfo;
-    settlementToken?: TokenInfo;
+	committer?: {
+		address: string;
+	}
+	shortToken?: TokenInfo;
+	longToken?: TokenInfo;
+	settlementToken?: TokenInfo;
 }
 
 /**
@@ -65,9 +66,10 @@ export interface IPool extends StaticPoolInfo {
  * The constructor is private so must be instantiated with {@linkcode Pool.Create}
  */
 export default class Pool {
-    address: string;
-	provider: ethers.providers.Provider | ethers.Signer | undefined
-	chainId: number | undefined
+	address: string;
+	provider: ethers.providers.Provider | ethers.Signer | undefined;
+	multicallProvider: MCProvider.MulticallProvider | ethers.Signer | undefined;
+	chainId: number | undefined;
 
 	_contract?: LeveragedPool;
 	_keeper?: PoolKeeper;
@@ -100,11 +102,12 @@ export default class Pool {
 	private constructor() {
 		this.address = '';
 		this.provider = undefined;
+		this.multicallProvider = undefined;
 		this.chainId = undefined;
 
 		this.name = '';
-		this.updateInterval = new BigNumber (0);
-		this.frontRunningInterval = new BigNumber (0);
+		this.updateInterval = new BigNumber(0);
+		this.frontRunningInterval = new BigNumber(0);
 		this.fee = new BigNumber(0);
 		this.leverage = 1;
 		this.fee = new BigNumber(0);
@@ -160,6 +163,10 @@ export default class Pool {
 	private init: (poolInfo: IPool) => Promise<void> = async (poolInfo) => {
 		this.address = poolInfo.address;
 		this.provider = poolInfo.provider;
+		this.multicallProvider =
+			new MCProvider.MulticallProvider(
+				poolInfo.provider
+			);
 		const contract = LeveragedPool__factory.connect(
 			poolInfo.address,
 			poolInfo.provider
@@ -181,7 +188,7 @@ export default class Pool {
 		this.fee = new BigNumber(ethers.utils.formatEther(fee));
 		this.leverage = parseInt(leverage.toString());
 
-		const network = await this.provider.getNetwork()
+		const network = await this.multicallProvider.getNetwork()
 		this.chainId = network.chainId;
 
 		const [longTokenAddress, shortTokenAddress, settlementTokenAddress] = await Promise.all([
@@ -196,18 +203,18 @@ export default class Pool {
 					...poolInfo.shortToken,
 					pool: this.address,
 					address: shortTokenAddress,
-					provider: this.provider,
+					provider: this.multicallProvider,
 					side: SideEnum.short
 				}), PoolToken.Create({
 					...poolInfo.longToken,
 					pool: this.address,
 					address: longTokenAddress,
-					provider: this.provider,
+					provider: this.multicallProvider,
 					side: SideEnum.long
 				}), Token.Create({
 					...poolInfo.settlementToken,
 					address: settlementTokenAddress,
-					provider: this.provider,
+					provider: this.multicallProvider,
 				})
 			]
 		)
@@ -217,7 +224,7 @@ export default class Pool {
 
 		const poolCommitter = await Committer.Create({
 			address: committer,
-			provider: this.provider,
+			provider: this.multicallProvider,
 			settlementTokenDecimals: settlementToken.decimals,
 			...poolInfo.committer
 		})
@@ -226,11 +233,11 @@ export default class Pool {
 		// TODO handle other types of oracles
 		const smaOracle = await SMAOracle.Create({
 			address: oracleWrapper,
-			provider: this.provider,
+			provider: this.multicallProvider,
 		})
 		this.oracle = smaOracle;
 
-		const keeperInstance = PoolKeeper__factory.connect(keeper, this.provider)
+		const keeperInstance = PoolKeeper__factory.connect(keeper, this.multicallProvider)
 		this._keeper = keeperInstance;
 
 		await Promise.all([
@@ -246,10 +253,10 @@ export default class Pool {
 		this.lastUpdate = new BigNumber(lastUpdate.toString());
 		this.oraclePriceTransformer = poolInfo.oraclePriceTransformer ?? movingAveragePriceTransformer
 
-		if(POOL_STATE_HELPER_BY_NETWORK[this.chainId]) {
+		if (POOL_STATE_HELPER_BY_NETWORK[this.chainId]) {
 			const poolStateHelper = await PoolStateHelper.Create({
 				address: POOL_STATE_HELPER_BY_NETWORK[this.chainId],
-				provider: this.provider,
+				provider: this.multicallProvider,
 				poolAddress: poolInfo.address,
 				committerAddress: committer
 			})
@@ -267,7 +274,7 @@ export default class Pool {
 	public getNextValueTransfer: () => {
 		shortValueTransfer: BigNumber,
 		longValueTransfer: BigNumber,
-	}= () => {
+	} = () => {
 		const longBalanceAfterFee = this.longBalance.minus(this.longBalance.times(this.fee))
 		const shortBalanceAfterFee = this.shortBalance.minus(this.longBalance.times(this.fee))
 		return calcNextValueTransfer(this.lastPrice, this.oraclePrice, new BigNumber(this.leverage), longBalanceAfterFee, shortBalanceAfterFee)
@@ -347,8 +354,8 @@ export default class Pool {
 			throw Error("Failed to update pool balances: " + error?.message ?? error)
 		})
 
-        const shortBalance = new BigNumber(ethers.utils.formatUnits(shortBalance_, this.settlementToken.decimals));
-        const longBalance = new BigNumber(ethers.utils.formatUnits(longBalance_, this.settlementToken.decimals));
+		const shortBalance = new BigNumber(ethers.utils.formatUnits(shortBalance_, this.settlementToken.decimals));
+		const longBalance = new BigNumber(ethers.utils.formatUnits(longBalance_, this.settlementToken.decimals));
 
 		this.setLongBalance(longBalance);
 		this.setShortBalance(shortBalance);
@@ -411,35 +418,35 @@ export default class Pool {
 	 * get all total pool commitments between now and `now + frontRunningInterval`
 	 * @returns promise resolving to an array of `TotalPoolCommitmentsBN`s
 	 */
-	public getPendingCommitsInFrontRunningInterval: () => Promise<TotalPoolCommitmentsBN[]> = async() => {
-		if(!this.committer._contract) {
+	public getPendingCommitsInFrontRunningInterval: () => Promise<TotalPoolCommitmentsBN[]> = async () => {
+		if (!this.committer._contract) {
 			throw Error("Failed to fetch pending commits in front running interval: this.committer._contract undefined")
 		}
 
 		const updateIntervalId = (await this.committer._contract.updateIntervalId()).toNumber()
 
-    if (this.frontRunningInterval.lt(this.updateInterval)) {
-      // simple case, commits will be executed either in next upkeep
+		if (this.frontRunningInterval.lt(this.updateInterval)) {
+			// simple case, commits will be executed either in next upkeep
 			// or one after if committed within the front running interval
 
 			const pendingCommitsThisInterval = await this.committer._contract.totalPoolCommitments(updateIntervalId);
 			return [pendingCommitsToBN(pendingCommitsThisInterval, this.settlementToken.decimals)];
-    }
+		}
 
-    const upkeepsPerFrontRunningInterval = Math.floor(this.frontRunningInterval.div(this.updateInterval).toNumber());
-    const pendingCommitPromises: Promise<TotalPoolCommitmentsBN>[] = [];
+		const upkeepsPerFrontRunningInterval = Math.floor(this.frontRunningInterval.div(this.updateInterval).toNumber());
+		const pendingCommitPromises: Promise<TotalPoolCommitmentsBN>[] = [];
 
-    // the last update interval that will be executed in the frontrunning interval as of now
-    const maxIntervalId = updateIntervalId + upkeepsPerFrontRunningInterval;
+		// the last update interval that will be executed in the frontrunning interval as of now
+		const maxIntervalId = updateIntervalId + upkeepsPerFrontRunningInterval;
 
-    for (let i = updateIntervalId; i <= maxIntervalId; i++) {
+		for (let i = updateIntervalId; i <= maxIntervalId; i++) {
 			pendingCommitPromises.push(
 				this.committer._contract.totalPoolCommitments(i)
-				.then(totalPoolCommitments => pendingCommitsToBN(totalPoolCommitments, this.settlementToken.decimals))
+					.then(totalPoolCommitments => pendingCommitsToBN(totalPoolCommitments, this.settlementToken.decimals))
 			)
-    }
+		}
 
-    return Promise.all(pendingCommitPromises);
+		return Promise.all(pendingCommitPromises);
 	}
 
 	/**
@@ -447,8 +454,8 @@ export default class Pool {
 	 * get total pool commitments between now and `now + updateInterval`
 	 * @returns promise resolving to a `TotalPoolCommitmentsBN` object
 	 */
-	public getPendingCommitsInUpdateInterval: () => Promise<TotalPoolCommitmentsBN> = async() => {
-		if(!this.committer._contract) {
+	public getPendingCommitsInUpdateInterval: () => Promise<TotalPoolCommitmentsBN> = async () => {
+		if (!this.committer._contract) {
 			throw Error("Failed to fetch pending commits in update interval: this.committer._contract undefined")
 		}
 
@@ -473,7 +480,7 @@ export default class Pool {
 		atEndOf: 'frontRunningInterval' | 'updateInterval',
 		forceRefreshInputs?: boolean,
 	) => Promise<PoolStatePreview> = async (atEndOf, forceRefreshInputs) => {
-		if(!this.committer._contract) {
+		if (!this.committer._contract) {
 			throw Error("Failed to get pool state preview after front running interval: this.committer._contract undefined")
 		}
 		const [
@@ -591,11 +598,14 @@ export default class Pool {
 			throw Error("Failed to connect LeveragedPool: provider cannot be undefined")
 		}
 		this.provider = provider;
-		this._contract = this._contract?.connect(provider);
-		this.committer.connect(provider);
-		this.longToken.connect(provider);
-		this.shortToken.connect(provider);
-		this.settlementToken.connect(provider);
+		this.multicallProvider = new MCProvider.MulticallProvider(
+			provider as ethers.providers.Provider
+		);
+		this._contract = this._contract?.connect(this.multicallProvider);
+		this.committer.connect(this.multicallProvider);
+		this.longToken.connect(this.multicallProvider);
+		this.shortToken.connect(this.multicallProvider);
+		this.settlementToken.connect(this.multicallProvider);
 	}
 
 	public getAnnualFee: () => BigNumber = () => {

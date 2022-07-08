@@ -5,6 +5,7 @@ import {
 	ChainlinkOracleWrapper__factory
 } from "@tracer-protocol/perpetual-pools-contracts/types";
 import BigNumber from "bignumber.js";
+import { providers as MCProvider } from '@0xsequence/multicall';
 import { ethers } from "ethers";
 import { OracleClass, IContract } from "../types";
 
@@ -16,7 +17,7 @@ const defaultSMAOracle = {
 /**
  * SMAOracle class constructor inputs
  */
-export interface ISMAOracle extends IContract, SMAOracleInfo {}
+export interface ISMAOracle extends IContract, SMAOracleInfo { }
 
 /**
  * SMAOracle constructor props
@@ -36,6 +37,7 @@ export default class SMAOracle implements OracleClass<SMAOracleContract> {
 	_underlyingOracle?: ChainlinkOracleWrapper; // assumes all SMA oracles use spot chainlink oracle wrapper
 	address: string;
 	provider: ethers.providers.Provider | ethers.Signer | undefined;
+	multicallProvider: MCProvider.MulticallProvider | ethers.Signer | undefined;
 	updateInterval: number; //update interval in seconds
 	numPeriods: number; // number of periods included in SMA calc
 	type: 'SMA' | 'Spot' | undefined;
@@ -43,10 +45,11 @@ export default class SMAOracle implements OracleClass<SMAOracleContract> {
 	/**
 	 * @private
 	 */
-	private constructor () {
+	private constructor() {
 		this.address = '';
 		this.type = undefined;
 		this.provider = undefined;
+		this.multicallProvider = undefined;
 		this.updateInterval = defaultSMAOracle.updateInterval;
 		this.numPeriods = defaultSMAOracle.numPeriods;
 	}
@@ -78,11 +81,14 @@ export default class SMAOracle implements OracleClass<SMAOracleContract> {
 	 */
 	private init: (oracleInfo: ISMAOracle) => Promise<void> = async (oracleInfo) => {
 		this.provider = oracleInfo.provider;
+		this.multicallProvider = new MCProvider.MulticallProvider(
+			oracleInfo.provider as ethers.providers.Provider
+		);
 		this.address = oracleInfo.address;
 
 		const contract = SMAOracle__factory.connect(
 			oracleInfo.address,
-			oracleInfo.provider
+			this.multicallProvider
 		);
 		this._contract = contract;
 
@@ -109,7 +115,7 @@ export default class SMAOracle implements OracleClass<SMAOracleContract> {
 
 		this._underlyingOracle = ChainlinkOracleWrapper__factory.connect(
 			underlyingOracleAddress,
-			this.provider
+			this.multicallProvider
 		);
 		this.updateInterval = updateInterval;
 		this.numPeriods = numPeriods;
@@ -133,10 +139,10 @@ export default class SMAOracle implements OracleClass<SMAOracleContract> {
 		}
 	}
 
-		/**
-	 * get the current underlying spot price
-	 * @returns the current price reported by the underlying price oracle
-	 */
+	/**
+ * get the current underlying spot price
+ * @returns the current price reported by the underlying price oracle
+ */
 	public getSpotPrice: () => Promise<BigNumber> = async () => {
 		if (!this._underlyingOracle) {
 			throw Error("Failed to fetch sma spot price: underlying oracle not defined");
@@ -158,6 +164,9 @@ export default class SMAOracle implements OracleClass<SMAOracleContract> {
 			throw Error("Failed to connect SMAOracle: provider cannot be undefined")
 		}
 		this.provider = provider;
-		this._contract = this._contract?.connect(provider);
+		this.multicallProvider = new MCProvider.MulticallProvider(
+			provider as ethers.providers.Provider
+		);
+		this._contract = this._contract?.connect(this.multicallProvider);
 	}
 }
