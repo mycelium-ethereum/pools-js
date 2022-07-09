@@ -79,6 +79,8 @@ export type PoolStatePreview = {
   expectedShortSupply: BigNumber,
   totalNetPendingLong: BigNumber,
   totalNetPendingShort: BigNumber,
+  pendingLongTokenBurn: BigNumber,
+  pendingShortTokenBurn: BigNumber,
   expectedLongTokenPrice: BigNumber,
   expectedShortTokenPrice: BigNumber,
   lastOraclePrice: BigNumber,

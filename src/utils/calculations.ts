@@ -270,7 +270,7 @@ export const getExpectedExecutionTimestamp: (frontRunningInterval: number, updat
     const nextRebalance = lastUpdate + updateInterval;
 
     const timeSinceCommit = lastUpdate - commitCreated;
-    let updateIntervalsPassed = timeSinceCommit > 0 ? Math.ceil(timeSinceCommit / updateInterval) : 0; 
+    let updateIntervalsPassed = timeSinceCommit > 0 ? Math.ceil(timeSinceCommit / updateInterval) : 0;
     if (updateIntervalsPassed === 1) {
         updateIntervalsPassed = 0;
     }
@@ -427,6 +427,8 @@ export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): Poo
     totalNetPendingShort,
     expectedLongTokenPrice,
     expectedShortTokenPrice,
+    pendingLongTokenBurn,
+    pendingShortTokenBurn,
     lastOraclePrice: lastOraclePrice,
     expectedOraclePrice: movingOraclePriceAfter,
     pendingCommits
