@@ -23,8 +23,10 @@ export interface _PoolStateHelper {
 type ExpectedPoolState = {
 	longSupply: BigNumber,
 	longBalance: BigNumber,
+	pendingLongTokenBurn: BigNumber,
 	shortSupply: BigNumber,
 	shortBalance: BigNumber,
+	pendingShortTokenBurn: BigNumber,
 	oraclePrice: BigNumber,
 }
 
@@ -127,8 +129,10 @@ export default class PoolStateHelper {
 		return {
 			longSupply: ethersBNtoBN(expectedState.longSupply),
 			longBalance: ethersBNtoBN(expectedState.longBalance),
+			pendingLongTokenBurn: ethersBNtoBN(expectedState.remainingPendingLongBurnTokens),
 			shortSupply: ethersBNtoBN(expectedState.shortSupply),
 			shortBalance: ethersBNtoBN(expectedState.shortBalance),
+			pendingShortTokenBurn: ethersBNtoBN(expectedState.remainingPendingShortBurnTokens),
 			// oracle wrapper formats price to decimal places
 			// pool state helper leaves oracle price in wad, format here to be consistent with
 			oraclePrice: new BigNumber(ethers.utils.formatEther(expectedState.oraclePrice)),

@@ -543,7 +543,7 @@ export default class Pool {
 	) => Promise<PoolStatePreview> = async (atEndOf) => {
 
 		const periods = atEndOf === 'frontRunningInterval' ?
-			this.poolStateHelper.fullCommitPeriod :
+			this.poolStateHelper.fullCommitPeriod + 1 :
 			1
 
 		const [
@@ -564,6 +564,9 @@ export default class Pool {
 			this.oracle.getPrice(),
 		])
 
+		const effectiveLongSupply = expectedState.longSupply.plus(expectedState.pendingLongTokenBurn);
+		const effectiveShortSupply = expectedState.shortSupply.plus(expectedState.pendingShortTokenBurn);
+
 		const poolStatePreview = {
 			timestamp: Math.floor(Date.now() / 1000),
 			currentSkew: currentState.longBalance.div(currentState.shortBalance.eq(0) ? 1 : currentState.shortBalance),
@@ -578,8 +581,10 @@ export default class Pool {
 			expectedShortSupply: expectedState.shortSupply,
 			totalNetPendingLong: expectedState.longBalance.minus(currentState.longBalance),
 			totalNetPendingShort: expectedState.shortBalance.minus(currentState.shortBalance),
-			expectedLongTokenPrice: expectedState.longBalance.div(expectedState.shortBalance.eq(0) ? 1 : expectedState.shortBalance),
-			expectedShortTokenPrice: expectedState.shortBalance.div(expectedState.longBalance.eq(0) ? 1 : expectedState.longBalance),
+			expectedLongTokenPrice: effectiveLongSupply.div(expectedState.shortBalance.eq(0) ? 1 : expectedState.shortBalance),
+			expectedShortTokenPrice: effectiveShortSupply.div(expectedState.longBalance.eq(0) ? 1 : expectedState.longBalance),
+			pendingLongTokenBurn: expectedState.pendingLongTokenBurn,
+			pendingShortTokenBurn: expectedState.pendingShortTokenBurn,
 			lastOraclePrice: currentOraclePrice,
 			expectedOraclePrice: expectedState.oraclePrice,
 			pendingCommits

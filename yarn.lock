@@ -1928,10 +1928,10 @@
   resolved "https://registry.npmjs.org/@tracer-protocol/perpetual-pools-contracts/-/perpetual-pools-contracts-1.2.5.tgz#1c579c0bfeed93791ace37ae22add118b1fc24c5"
   integrity sha512-cgE80mAr3m/khjjoU1eojhs4ZN3Miu+Gl03/zRy4mKc3dpDAVryVf1726PC9fZ1DES9uVA6/htrXH5UbuEppdQ==
 
-"@tracer-protocol/pool-state-helper@^0.0.2":
-  version "0.0.2"
-  resolved "https://registry.npmjs.org/@tracer-protocol/pool-state-helper/-/pool-state-helper-0.0.2.tgz#3eb62ff1318a5658bd25a88e7a916578534bc284"
-  integrity sha512-FJyIgMsqhCXxr7S87uLwZdAyNWL9VN7mDZp6QB2lLzmdiJhgh1qi1SaZoCi4Gea3iP/25apPZmzcKNM5UsNlJg==
+"@tracer-protocol/pool-state-helper@^0.0.4":
+  version "0.0.4"
+  resolved "https://registry.npmjs.org/@tracer-protocol/pool-state-helper/-/pool-state-helper-0.0.4.tgz#47252bcefd7e921083334f6cf9a9e99db025f4f4"
+  integrity sha512-0qJYVswDueuiWntzCO7hPZ7qFvuPSPoGm/U3k24Ozz6OP4iNBdvU4PnpQ1xVifLPbjiFbCZNNdd6qD/Vu8n+bA==
 
 "@tsconfig/node10@^1.0.7":
   version "1.0.8"
