@@ -564,8 +564,11 @@ export default class Pool {
 			this.oracle.getPrice(),
 		])
 
-		const effectiveLongSupply = expectedState.longSupply.plus(expectedState.pendingLongTokenBurn);
-		const effectiveShortSupply = expectedState.shortSupply.plus(expectedState.pendingShortTokenBurn);
+		const effectiveCurrentLongSupply = currentState.longSupply.plus(currentState.pendingLongTokenBurn);
+		const effectiveCurrentShortSupply = currentState.shortSupply.plus(currentState.pendingShortTokenBurn);
+
+		const effectiveExpectedLongSupply = expectedState.longSupply.plus(expectedState.pendingLongTokenBurn);
+		const effectiveExpectedShortSupply = expectedState.shortSupply.plus(expectedState.pendingShortTokenBurn);
 
 		const poolStatePreview = {
 			timestamp: Math.floor(Date.now() / 1000),
@@ -574,6 +577,10 @@ export default class Pool {
 			currentLongSupply: currentState.longSupply,
 			currentShortBalance: currentState.shortBalance,
 			currentShortSupply: currentState.shortSupply,
+			currentPendingLongTokenBurn: currentState.pendingLongTokenBurn,
+			currentPendingShortTokenBurn: currentState.pendingShortTokenBurn,
+			currentLongTokenPrice: currentState.longBalance.div(effectiveCurrentLongSupply.eq(0) ? 1 : effectiveCurrentLongSupply),
+			currentShortTokenPrice: currentState.shortBalance.div(effectiveCurrentShortSupply.eq(0) ? 1 : effectiveCurrentShortSupply),
 			expectedSkew: expectedState.longBalance.div(expectedState.shortBalance.eq(0) ? 1 : expectedState.shortBalance),
 			expectedLongBalance: expectedState.longBalance,
 			expectedLongSupply: expectedState.longSupply,
@@ -581,10 +588,10 @@ export default class Pool {
 			expectedShortSupply: expectedState.shortSupply,
 			totalNetPendingLong: expectedState.longBalance.minus(currentState.longBalance),
 			totalNetPendingShort: expectedState.shortBalance.minus(currentState.shortBalance),
-			expectedLongTokenPrice: effectiveLongSupply.div(expectedState.shortBalance.eq(0) ? 1 : expectedState.shortBalance),
-			expectedShortTokenPrice: effectiveShortSupply.div(expectedState.longBalance.eq(0) ? 1 : expectedState.longBalance),
-			pendingLongTokenBurn: expectedState.pendingLongTokenBurn,
-			pendingShortTokenBurn: expectedState.pendingShortTokenBurn,
+			expectedLongTokenPrice: expectedState.longBalance.div(effectiveExpectedLongSupply.eq(0) ? 1 : effectiveExpectedLongSupply),
+			expectedShortTokenPrice: expectedState.shortBalance.div(effectiveExpectedShortSupply.eq(0) ? 1 : effectiveExpectedShortSupply),
+			expectedPendingLongTokenBurn: expectedState.pendingLongTokenBurn,
+			expectedPendingShortTokenBurn: expectedState.pendingShortTokenBurn,
 			lastOraclePrice: currentOraclePrice,
 			expectedOraclePrice: expectedState.oraclePrice,
 			pendingCommits
