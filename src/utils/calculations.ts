@@ -342,6 +342,9 @@ export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): Poo
     let movingOraclePriceBefore = lastOraclePrice;
     let movingOraclePriceAfter = lastOraclePrice;
 
+    let expectedPendingLongTokenBurn = pendingLongTokenBurn;
+    let expectedPendingShortTokenBurn = pendingShortTokenBurn;
+
     // each pendingCommit is the summation of all commits for each upkeep in pendingCommits
     for (const pendingCommit of pendingCommits) {
         // subtract fees each upkeep
@@ -376,6 +379,9 @@ export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): Poo
 
         const totalLongBurn = longBurnPoolTokens.plus(longBurnShortMintPoolTokens);
         const totalShortBurn = shortBurnPoolTokens.plus(shortBurnLongMintPoolTokens);
+
+        expectedPendingLongTokenBurn = expectedPendingLongTokenBurn.minus(totalLongBurn);
+        expectedPendingShortTokenBurn = expectedPendingShortTokenBurn.minus(totalShortBurn);
 
         // current balance + expected value transfer / expected supply
         // if either side has no token supply, any amount no matter how small will buy the whole side
@@ -441,8 +447,8 @@ export const calcPoolStatePreview = (previewInputs: PoolStatePreviewInputs): Poo
     totalNetPendingShort,
     expectedLongTokenPrice,
     expectedShortTokenPrice,
-    expectedPendingLongTokenBurn: pendingLongTokenBurn,
-    expectedPendingShortTokenBurn: pendingShortTokenBurn,
+    expectedPendingLongTokenBurn,
+    expectedPendingShortTokenBurn,
     lastOraclePrice: lastOraclePrice,
     expectedOraclePrice: movingOraclePriceAfter,
     pendingCommits
