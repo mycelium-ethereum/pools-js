@@ -6,6 +6,7 @@ import {
 	LeveragedPool,
 	PoolKeeper__factory,
 	PoolKeeper,
+	PoolSwapLibrary__factory,
 } from '@tracer-protocol/perpetual-pools-contracts/types';
 import { providers as MCProvider } from '@0xsequence/multicall';
 import PoolToken from "./poolToken";
@@ -16,7 +17,8 @@ import { ethersBNtoBN, movingAveragePriceTransformer, pendingCommitsToBN, SECOND
 import SMAOracle from "./smaOracle";
 import PoolStateHelper from "./poolStateHelper";
 import { POOL_STATE_HELPER_BY_NETWORK } from "../utils";
-
+import { poolSwapLibraryByNetwork } from "../data/poolSwapLibraries";
+import { deprecatedTokenAddresses } from "../data/tokenList";
 
 /**
  * Static pool info that can be passed in as props
@@ -173,7 +175,7 @@ export default class Pool {
 		)
 		this._contract = contract;
 
-		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name, oracleWrapper, fee, leverage] = await Promise.all([
+		const [lastUpdate, committer, keeper, updateInterval, frontRunningInterval, name, oracleWrapper] = await Promise.all([
 			contract.lastPriceTimestamp(),
 			poolInfo?.committer?.address ? poolInfo?.committer?.address : contract.poolCommitter(),
 			poolInfo?.keeper ? poolInfo?.keeper : contract.keeper(),
@@ -181,15 +183,14 @@ export default class Pool {
 			poolInfo?.frontRunningInterval ? poolInfo?.frontRunningInterval : contract.frontRunningInterval(),
 			poolInfo?.name ? poolInfo?.name : contract.poolName(),
 			poolInfo?.oracle ? poolInfo.oracle : contract.oracleWrapper(),
-			poolInfo?.fee && parseInt(ethers.utils.formatEther(poolInfo.fee)) <= 1 ? poolInfo?.fee : contract.getFee(), // passed fee cant be over 100%
-			poolInfo?.leverage ? poolInfo.leverage : contract.getLeverage()
 		]);
-
-		this.fee = new BigNumber(ethers.utils.formatEther(fee));
-		this.leverage = parseInt(leverage.toString());
 
 		const network = await this.multicallProvider.getNetwork()
 		this.chainId = network.chainId;
+
+		const [fee, leverage] = await this.getFeeAndLeverage(poolInfo, this.chainId, name, this.provider, this._contract);
+		this.fee = new BigNumber(ethers.utils.formatEther(fee));
+		this.leverage = parseInt(leverage.toString());
 
 		const [longTokenAddress, shortTokenAddress, settlementTokenAddress] = await Promise.all([
 			poolInfo.longToken?.address ? poolInfo.longToken?.address : contract.tokens(0),
@@ -288,6 +289,47 @@ export default class Pool {
 	public getLongTokenPrice: () => BigNumber = () => (
 		calcTokenPrice(this.longBalance, this.longToken.supply.plus(this.committer.pendingLong.burn))
 	)
+
+	/**
+	 * Calculates and returns the fee and leverage for the current Pool address.
+	 * Compares to a list of known deprecated Pool addresses and uses old method if necessary.
+	 * @returns the fee and leverage amounts
+	 */
+	public getFeeAndLeverage: (poolInfo: IPool, chainId: number, name: string, provider: ethers.providers.Provider, contract: LeveragedPool) => Promise<[string | ethers.BigNumber, number | ethers.BigNumber]> = async (poolInfo, chainId, name, provider, contract) => {
+		if (deprecatedTokenAddresses.includes(this.address)) {
+			let leverage: number;
+			if (poolInfo?.leverage) {
+				leverage = poolInfo.leverage
+			} else if (!poolSwapLibraryByNetwork[chainId]) {
+				// temp fix since the fetched leverage is in IEEE 128 bit. Get leverage amount from name
+				leverage = parseInt(name.split('-')?.[0] ?? 1);
+			} else {
+				try {
+					const poolSwapLibrary = PoolSwapLibrary__factory.connect(
+						poolSwapLibraryByNetwork[chainId],
+						provider
+					)
+
+					const leverageAmountBytes = await contract.leverageAmount();
+					const convertedLeverage = await poolSwapLibrary.convertDecimalToUInt(leverageAmountBytes);
+
+					leverage = convertedLeverage.toNumber();
+				} catch (error) {
+					leverage = parseInt(name.split('-')?.[0] ?? 1);
+				}
+			}
+			return [
+				'0',
+				leverage,
+			]
+		}
+		else {
+			return [
+				poolInfo?.fee && parseInt(ethers.utils.formatEther(poolInfo.fee)) <= 1 ? poolInfo?.fee : await contract.getFee(),  // passed fee cant be over 100%
+				poolInfo?.leverage ? poolInfo.leverage : await contract.getLeverage(),
+			]
+		}
+	}
 
 	/**
 	 * Calculates and returns the short token price.
