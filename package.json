@@ -43,7 +43,8 @@
     "@tracer-protocol/perpetual-pools-contracts": "^1.2.5",
     "@tracer-protocol/pool-state-helper": "^0.0.4",
     "bignumber.js": "^9.0.1",
-    "ethers": "^5.6.1"
+    "ethers": "^5.6.1",
+    "tiny-typed-emitter": "^2.1.0"
   },
   "keywords": [
     "ethereum",
