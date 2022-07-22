@@ -2,6 +2,11 @@ import { StaticTokenInfo, KnownNetwork } from '../types';
 import { NETWORKS } from '../utils';
 const { ARBITRUM, ARBITRUM_RINKEBY, MAINNET, RINKEBY, KOVAN } = NETWORKS
 
+export const deprecatedTokenAddresses = [
+    '0x6D3Fb4AA7ddCa8CBc88F7BA94B36ba83fF6bA234', // 3-BTC/USD+USDC
+    '0x3C16b9efE5E4Fc0ec3963F17c64a3dcBF7269207', // 3-ETH/USD+USDC
+]
+
 const tokenList: Record<KnownNetwork, StaticTokenInfo[]> = {
     [ARBITRUM]: [
         {
