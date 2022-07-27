@@ -16,8 +16,7 @@ import { OraclePriceTransformer, PoolStatePreview, TotalPoolCommitmentsBN } from
 import { ethersBNtoBN, movingAveragePriceTransformer, pendingCommitsToBN, SECONDS_PER_LEAP_YEAR } from "../utils";
 import SMAOracle from "./smaOracle";
 import PoolStateHelper from "./poolStateHelper";
-import { POOL_STATE_HELPER_BY_NETWORK } from "../utils";
-import { poolSwapLibraryByNetwork } from "../data/poolSwapLibraries";
+import { POOL_STATE_HELPER_BY_NETWORK, POOL_SWAP_LIBRARY_BY_NETWORK } from "../utils";
 import { deprecatedTokenAddresses } from "../data/tokenList";
 
 /**
@@ -300,13 +299,13 @@ export default class Pool {
 			let leverage: number;
 			if (poolInfo?.leverage) {
 				leverage = poolInfo.leverage
-			} else if (!poolSwapLibraryByNetwork[chainId]) {
+			} else if (!POOL_SWAP_LIBRARY_BY_NETWORK[chainId]) {
 				// temp fix since the fetched leverage is in IEEE 128 bit. Get leverage amount from name
 				leverage = parseInt(name.split('-')?.[0] ?? 1);
 			} else {
 				try {
 					const poolSwapLibrary = PoolSwapLibrary__factory.connect(
-						poolSwapLibraryByNetwork[chainId],
+						POOL_SWAP_LIBRARY_BY_NETWORK[chainId],
 						provider
 					)
 
